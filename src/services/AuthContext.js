@@ -19,7 +19,9 @@ export const AuthProvider = ({ children }) => {
         setUserData(null);
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      // If client is offline or database doesn't exist yet, treat as new user
+      console.log('Error fetching user data (treating as new user):', error.message);
+      setUserData(null);
     }
   };
 

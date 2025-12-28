@@ -1,30 +1,30 @@
 import { StyleSheet } from 'react-native';
 
 export const COLORS = {
-  primary: '#FF4B8B', // Pink
-  secondary: '#8B4BFF', // Purple
-  tertiary: '#4B8BFF', // Blue
-  background: '#0F0F1E', // Dark background
-  card: 'rgba(255, 255, 255, 0.1)',
+  primary: '#6e33b1', // Purple
+  secondary: '#c0b4e3', // Soft Lavender
+  tertiary: '#8e44ad', // Darker Purple
+  background: '#13172A', // Deep Dark Blue
+  card: 'rgba(255, 255, 255, 0.05)',
   text: '#FFFFFF',
   textSecondary: 'rgba(255, 255, 255, 0.6)',
-  border: 'rgba(255, 255, 255, 0.2)',
+  border: 'rgba(255, 255, 255, 0.15)',
   success: '#4CD964',
   error: '#FF3B30',
   white: '#FFFFFF',
   black: '#000000',
   glass: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
   }
 };
 
 export const GRADIENTS = {
-  primary: ['#FF4B8B', '#8B4BFF'],
-  secondary: ['#8B4BFF', '#4B8BFF'],
-  dark: ['#1A1A2E', '#16213E'],
-  glass: ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)'],
+  primary: ['#6e33b1', '#8e44ad'],
+  secondary: ['#c0b4e3', '#a569bd'],
+  dark: ['#0e0307', '#1a0b14'],
+  glass: ['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.02)'],
 };
 
 export const COMMON_STYLES = StyleSheet.create({

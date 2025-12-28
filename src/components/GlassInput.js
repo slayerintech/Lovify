@@ -16,15 +16,15 @@ export const GlassInput = ({ containerStyle, style, ...props }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    marginBottom: 15,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 16,
     overflow: 'hidden',
   },
   input: {
-    padding: 15,
+    padding: 16,
     color: COLORS.white,
     fontSize: 16,
   },

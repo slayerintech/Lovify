@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -14,11 +14,24 @@ import { COLORS } from '../styles/theme';
 
 const { width, height } = Dimensions.get('window');
 
-export const TinderCard = ({ user, onSwipeLeft, onSwipeRight }) => {
+export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
+
+  useImperativeHandle(ref, () => ({
+    swipeLeft: () => {
+      translateX.value = withSpring(-width * 1.5, {}, () => {
+        runOnJS(onSwipeLeft)();
+      });
+    },
+    swipeRight: () => {
+      translateX.value = withSpring(width * 1.5, {}, () => {
+        runOnJS(onSwipeRight)();
+      });
+    },
+  }));
 
   const panGesture = Gesture.Pan()
     .onBegin(() => {
@@ -91,7 +104,7 @@ export const TinderCard = ({ user, onSwipeLeft, onSwipeRight }) => {
       </Animated.View>
     </GestureDetector>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

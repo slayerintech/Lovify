@@ -1,0 +1,270 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from 'react-native';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
+import { useAuth } from '../services/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+
+export default function ChatsScreen() {
+  const { user } = useAuth();
+  const [matches, setMatches] = useState([]);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'matches'), where('users', 'array-contains', user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMatches = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const otherUserId = data.users.find((id) => id !== user.uid);
+        const otherUserData = data.usersData[otherUserId];
+        return { id: doc.id, ...data, otherUser: otherUserData };
+      });
+      setMatches(fetchedMatches);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Horizontal "New Matches" Header
+  const renderNewMatches = () => (
+    <View style={styles.newMatchesSection}>
+      <Text style={styles.sectionTitle}>New Matches</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+        {matches.map((item) => (
+          <TouchableOpacity 
+            key={item.id} 
+            style={styles.newMatchCircle}
+            onPress={() => navigation.navigate('Chat', { matchId: item.id, user: item.otherUser })}
+          >
+            <LinearGradient colors={['#FF2D55', '#FF375F']} style={styles.avatarGlow}>
+              <Image source={{ uri: item.otherUser.photos[0] }} style={styles.smallAvatar} />
+            </LinearGradient>
+            <Text style={styles.matchName} numberOfLines={1}>{item.otherUser.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity 
+      activeOpacity={0.7}
+      style={styles.chatCardWrapper}
+      onPress={() => navigation.navigate('Chat', { matchId: item.id, user: item.otherUser })}
+    >
+      <BlurView intensity={10} tint="dark" style={styles.chatCard}>
+        <View style={styles.avatarContainer}>
+          <Image source={{ uri: item.otherUser.photos[0] }} style={styles.avatar} />
+          <View style={styles.onlineStatus} />
+        </View>
+        
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{item.otherUser.name}</Text>
+            <Text style={styles.time}>Now</Text>
+          </View>
+          <Text style={styles.preview} numberOfLines={1}>
+            Tap to start a conversation ✨
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.2)" />
+      </BlurView>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
+      
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Messages</Text>
+          <TouchableOpacity style={styles.searchButton}>
+            <Ionicons name="search" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {matches.length > 0 && renderNewMatches()}
+
+        <FlatList
+          data={matches}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={<Text style={styles.sectionTitle}>Recent Chats</Text>}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <View style={styles.emptyIconBg}>
+                <Ionicons name="chatbubbles-outline" size={50} color="#FF2D55" />
+              </View>
+              <Text style={styles.emptyText}>No messages yet</Text>
+              <Text style={styles.emptySubText}>Start swiping to find someone to talk to!</Text>
+            </View>
+          }
+        />
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 25,
+    paddingTop: 15,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -1,
+  },
+  searchButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  newMatchesSection: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FF2D55',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 25,
+    marginBottom: 15,
+  },
+  horizontalScroll: {
+    paddingHorizontal: 20,
+  },
+  newMatchCircle: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    width: 75,
+  },
+  avatarGlow: {
+    padding: 2,
+    borderRadius: 35,
+    marginBottom: 8,
+  },
+  smallAvatar: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    borderWidth: 2,
+    borderColor: '#000',
+  },
+  matchName: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  list: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 100,
+  },
+  chatCardWrapper: {
+    marginBottom: 12,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  chatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
+    marginRight: 15,
+  },
+  onlineStatus: {
+    position: 'absolute',
+    bottom: 2,
+    right: 18,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#32D74B',
+    borderWidth: 3,
+    borderColor: '#000',
+  },
+  info: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  time: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
+  preview: {
+    fontSize: 14,
+    color: '#8E8E93',
+    fontWeight: '500',
+  },
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconBg: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,45,85,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  emptySubText: {
+    color: '#8E8E93',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+});
