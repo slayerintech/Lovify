@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -8,12 +8,21 @@ import { GlassButton } from '../components/GlassButton';
 import { GlassInput } from '../components/GlassInput';
 import { COLORS } from '../styles/theme';
 import { makeRedirectUri } from 'expo-auth-session';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [confirmPasswordError, setConfirmPasswordError] = useState(false);
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   WebBrowser.maybeCompleteAuthSession();
   const isDev = __DEV__;
@@ -72,10 +81,84 @@ export default function LoginScreen() {
     }
   };
 
+  const validateEmail = (email) => {
+    // RFC 5322 compliant regex
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
+  };
+
+  const validatePassword = (password) => {
+    // Min 8 chars, at least 1 uppercase, 1 lowercase, 1 number, 1 special character
+    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return re.test(password);
+  };
+
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    if (text.length > 0) {
+      setEmailError(!validateEmail(text));
+    } else {
+      setEmailError(false);
+    }
+  };
+
+  const handlePasswordChange = (text) => {
+    setPassword(text);
+    if (isSignup && text.length > 0) {
+      setPasswordError(!validatePassword(text));
+    } else {
+      setPasswordError(false);
+    }
+  };
+
+  const handleConfirmPasswordChange = (text) => {
+    setConfirmPassword(text);
+    if (isSignup && text.length > 0) {
+      setConfirmPasswordError(text !== password);
+    } else {
+      setConfirmPasswordError(false);
+    }
+  };
+
   const handleEmailAuth = async () => {
+    // Basic empty check
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password');
+      setEmailError(!email);
+      setPasswordError(!password);
       return;
+    }
+
+    // Email validation
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      setEmailError(true);
+      return;
+    }
+
+    // Signup specific validations
+    if (isSignup) {
+      // Password strength check
+      if (!validatePassword(password)) {
+        Alert.alert(
+          'Weak Password', 
+          'Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character (@$!%*?&)'
+        );
+        setPasswordError(true);
+        return;
+      }
+
+      if (!confirmPassword) {
+        Alert.alert('Error', 'Please confirm your password');
+        setConfirmPasswordError(true);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        Alert.alert('Error', 'Passwords do not match');
+        setConfirmPasswordError(true);
+        return;
+      }
     }
 
     setLoading(true);
@@ -93,7 +176,7 @@ export default function LoginScreen() {
         message = 'That email address is invalid!';
       } else if (error.code === 'auth/weak-password') {
         message = 'Password should be at least 6 characters';
-      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
          message = 'Invalid email or password';
       }
       Alert.alert('Authentication Error', message);
@@ -103,34 +186,57 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ImageBackground 
+      source={require('../../assets/backgroundImage.jpeg')} 
+      style={styles.container} 
+      resizeMode="cover"
+    >
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
           <Text style={styles.title}>Lovify</Text>
-          <Text style={styles.subtitle}>{isSignup ? 'Create Account' : 'Welcome Back'}</Text>
+          {/* <Text style={styles.subtitle}>{isSignup ? 'Create Account' : 'Welcome Back'}</Text> */}
 
           <View style={styles.form}>
             <GlassInput
               placeholder="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
               keyboardType="email-address"
               autoCapitalize="none"
+              error={emailError}
             />
             <GlassInput
               placeholder="Password"
               value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+              onChangeText={handlePasswordChange}
+              secureTextEntry={!showPassword}
+              error={passwordError}
+              rightIcon={showPassword ? "eye-off" : "eye"}
+              onRightIconPress={() => setShowPassword(!showPassword)}
             />
+            
+            {isSignup && (
+              <GlassInput
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={handleConfirmPasswordChange}
+                secureTextEntry={!showConfirmPassword}
+                error={confirmPasswordError}
+                rightIcon={showConfirmPassword ? "eye-off" : "eye"}
+                onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            )}
             
             <GlassButton 
               title={loading ? "Please wait..." : (isSignup ? "Sign Up" : "Login")}
               onPress={handleEmailAuth}
               disabled={loading}
+              tint="dark"
+              style={styles.tabLikeButton}
+              textStyle={styles.tabLikeButtonText}
             />
 
             <TouchableOpacity onPress={() => setIsSignup(!isSignup)} style={styles.switchButton}>
@@ -148,24 +254,21 @@ export default function LoginScreen() {
             <GlassButton 
               title="Continue with Google" 
               onPress={onGoogle}
-              style={{ marginTop: 10, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+              tint="dark"
+              style={[styles.tabLikeButton, { marginTop: 10 }]}
+              textStyle={styles.tabLikeButtonText}
+              icon={<Ionicons name="logo-google" size={24} color="white" />}
             />
-            {isDev && (
-              <Text style={{color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 20, fontSize: 10}}>
-                Redirect URI: {redirectUri}
-              </Text>
-            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   content: {
     flex: 1,
@@ -174,10 +277,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: 10,
-    textShadowColor: 'rgba(255, 75, 139, 0.5)',
+    marginBottom: 30,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
   },
@@ -212,5 +314,17 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     paddingHorizontal: 10,
     fontSize: 12,
+  },
+  tabLikeButton: {
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    overflow: 'hidden',
+  },
+  tabLikeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

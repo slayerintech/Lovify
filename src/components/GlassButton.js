@@ -1,9 +1,9 @@
 import React from 'react';
-import { Text, Pressable, StyleSheet } from 'react-native';
+import { Text, Pressable, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { COLORS } from '../styles/theme';
 
-export const GlassButton = ({ onPress, title, style, textStyle, disabled }) => {
+export const GlassButton = ({ onPress, title, style, textStyle, disabled, tint = 'light', icon }) => {
   return (
     <Pressable
       onPress={onPress}
@@ -14,7 +14,8 @@ export const GlassButton = ({ onPress, title, style, textStyle, disabled }) => {
         { opacity: pressed || disabled ? 0.7 : 1 }
       ]}
     >
-      <BlurView intensity={80} tint="light" style={styles.blur}>
+      <BlurView intensity={80} tint={tint} style={styles.blur}>
+        {icon && <View style={styles.iconContainer}>{icon}</View>}
         <Text style={[styles.text, textStyle]}>{title}</Text>
       </BlurView>
     </Pressable>
@@ -34,6 +35,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    flexDirection: 'row',
+  },
+  iconContainer: {
+    marginRight: 10,
   },
   text: {
     color: COLORS.white,
