@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1014322922040",
+    "project_id": "lovify-2fa76",
+    "storage_bucket": "lovify-2fa76.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014322922040:android:57a84281e9ef3b4d5c9ccd",
+        "android_client_info": {
+          "package_name": "com.slayer.lovify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjlSOVze7ksXzD2LDncD89Cofv3MlAwjM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
