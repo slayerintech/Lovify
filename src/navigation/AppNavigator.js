@@ -14,6 +14,7 @@ import MatchesScreen from '../screens/MatchesScreen';
 import ChatsScreen from '../screens/ChatsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -114,7 +115,14 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Chat" component={ChatScreen} />
-            <Stack.Screen name="EditProfile" component={CreateProfileScreen} />
+            <Stack.Screen 
+              name="EditProfile" 
+              component={EditProfileScreen} 
+              options={{ 
+                presentation: 'modal',
+                headerShown: false,
+              }} 
+            />
           </>
         )}
       </Stack.Navigator>
