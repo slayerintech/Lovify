@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { AppHeader } from '../components/AppHeader';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -81,12 +82,7 @@ export default function ChatsScreen() {
       <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Messages</Text>
-          <TouchableOpacity style={styles.searchButton}>
-            <Ionicons name="search" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <AppHeader />
 
         {matches.length > 0 && renderNewMatches()}
 
@@ -118,27 +114,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    paddingTop: 15,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -1,
-  },
-  searchButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   newMatchesSection: {
     marginTop: 20,

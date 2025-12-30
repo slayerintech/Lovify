@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, Animated, TouchableOpacity, Easing, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, Animated, TouchableOpacity, Easing, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur'; 
 import { LinearGradient } from 'expo-linear-gradient'; 
@@ -8,7 +8,10 @@ import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import { TinderCard } from '../components/TinderCard';
 import { MatchModal } from '../components/MatchModal';
+import { AppHeader } from '../components/AppHeader';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+
+const { width, height } = Dimensions.get('window');
 
 const THEME = {
   bg: '#000000',
@@ -27,11 +30,13 @@ export default function HomeScreen() {
   const [matchModalVisible, setMatchModalVisible] = useState(false);
   const [lastMatch, setLastMatch] = useState(null);
   const navigation = useNavigation();
-  const scaleAnim = useRef(new Animated.Value(1)).current;
   const topCardRef = useRef(null);
 
+  // Get current top profile for details view
+  const currentProfile = profiles.length > 0 ? profiles[profiles.length - 1] : null;
+
   useEffect(() => {
-    startHeartbeat();
+    // startHeartbeat();
   }, []);
 
   useFocusEffect(
@@ -39,15 +44,6 @@ export default function HomeScreen() {
       fetchProfiles();
     }, [user, userData])
   );
-
-  const startHeartbeat = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  };
 
   const fetchProfiles = async (reset = false) => {
     if (!user || !userData) return;
@@ -110,73 +106,107 @@ export default function HomeScreen() {
       <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        {/* Frosted Glass Header */}
-        <View style={styles.headerContainer}>
-          <BlurView intensity={30} tint="dark" style={styles.headerBlur}>
-            <TouchableOpacity style={styles.header} onPress={() => fetchProfiles()} activeOpacity={0.7}>
-              <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                <LinearGradient colors={[THEME.accent, '#ff5e7d']} style={styles.logoCircle}>
-                  <Ionicons name="heart" size={24} color="white" />
-                </LinearGradient>
-              </Animated.View>
-              <Text style={styles.logoText}>Lovify</Text>
-            </TouchableOpacity>
-          </BlurView>
-        </View>
+        {/* Tinder-like Header */}
+        <AppHeader onPress={() => fetchProfiles()} />
         
-        <View style={styles.cardsContainer}>
-          {profiles.length > 0 ? (
-            profiles.map((profile, index) => {
-              const isTop = index === profiles.length - 1;
-              return (
-                <TinderCard
-                  ref={isTop ? topCardRef : null}
-                  key={profile.id}
-                  user={profile}
-                  onSwipeLeft={() => swipeLeft(index)}
-                  onSwipeRight={() => swipeRight(index)}
-                />
-              );
-            }).reverse() 
-          ) : (
-            <View style={styles.noMoreCards}>
-              <BlurView intensity={20} tint="light" style={styles.emptyCircle}>
-                 <Ionicons name="sparkles" size={50} color={THEME.accent} />
-              </BlurView>
-              <Text style={styles.noMoreText}>End of the world...</Text>
-              <TouchableOpacity 
-                style={styles.resetButton}
-                onPress={() => { setLoading(true); fetchProfiles(true); }}
-              >
-                <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
-                   <Text style={styles.resetButtonText}>Refresh Universe</Text>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.cardsContainer}>
+            {profiles.length > 0 ? (
+              profiles.map((profile, index) => {
+                const isTop = index === profiles.length - 1;
+                return (
+                  <TinderCard
+                    ref={isTop ? topCardRef : null}
+                    key={profile.id}
+                    user={profile}
+                    onSwipeLeft={() => swipeLeft(index)}
+                    onSwipeRight={() => swipeRight(index)}
+                  />
+                );
+              }).reverse() 
+            ) : (
+              <View style={styles.noMoreCards}>
+                <BlurView intensity={20} tint="light" style={styles.emptyCircle}>
+                   <Ionicons name="sparkles" size={50} color={THEME.accent} />
                 </BlurView>
-              </TouchableOpacity>
+                <Text style={styles.noMoreText}>End of the world...</Text>
+                <TouchableOpacity 
+                  style={styles.resetButton}
+                  onPress={() => { setLoading(true); fetchProfiles(true); }}
+                >
+                  <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
+                     <Text style={styles.resetButtonText}>Refresh Universe</Text>
+                  </BlurView>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Details Section for Current Profile */}
+          {currentProfile && (
+            <View style={styles.detailsContainer}>
+              <View style={styles.infoSection}>
+                {currentProfile.job ? <Text style={styles.job}>{currentProfile.job}</Text> : null}
+              </View>
+
+              {/* Bio Section */}
+              {currentProfile.bio ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>About Me</Text>
+                  <Text style={styles.bioText}>{currentProfile.bio}</Text>
+                </View>
+              ) : null}
+
+              {/* Interests Section */}
+              {currentProfile.interests && currentProfile.interests.length > 0 ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Interests</Text>
+                  <View style={styles.chipContainer}>
+                    {currentProfile.interests.map((interest, index) => (
+                      <View key={index} style={styles.chip}>
+                        <Text style={styles.chipText}>{interest}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              {/* Other Details */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Details</Text>
+                <View style={styles.detailItems}>
+                  {currentProfile.lookingFor ? (
+                    <View style={styles.detailItem}>
+                      <Ionicons name="search-outline" size={20} color={THEME.secondaryText} />
+                      <Text style={styles.detailText}>{currentProfile.lookingFor}</Text>
+                    </View>
+                  ) : null}
+                  
+                  {currentProfile.religion ? (
+                    <View style={styles.detailItem}>
+                      <Ionicons name="book-outline" size={20} color={THEME.secondaryText} />
+                      <Text style={styles.detailText}>{currentProfile.religion}</Text>
+                    </View>
+                  ) : null}
+
+                  {currentProfile.gender ? (
+                    <View style={styles.detailItem}>
+                      <Ionicons name="person-outline" size={20} color={THEME.secondaryText} />
+                      <Text style={styles.detailText}>{currentProfile.gender}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
             </View>
           )}
-        </View>
-
-        {profiles.length > 0 && (
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity 
-              style={[styles.glassButton, styles.shadowRed]} 
-              onPress={() => topCardRef.current?.swipeLeft()}
-            >
-              <BlurView intensity={40} tint="light" style={styles.buttonIconBg}>
-                <Ionicons name="close" size={36} color={THEME.error} />
-              </BlurView>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.glassButton, styles.shadowGreen]} 
-              onPress={() => topCardRef.current?.swipeRight()}
-            >
-              <BlurView intensity={40} tint="light" style={styles.buttonIconBg}>
-                <Ionicons name="heart" size={36} color={THEME.success} />
-              </BlurView>
-            </TouchableOpacity>
-          </View>
-        )}
+          
+          {/* Spacer for bottom scrolling */}
+          <View style={{ height: 100 }} />
+        </ScrollView>
       </SafeAreaView>
 
       <MatchModal
@@ -207,79 +237,88 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  headerContainer: {
-    marginHorizontal: 20,
-    marginTop: Platform.OS === 'android' ? 40 : 10,
-    borderRadius: 30,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: THEME.glassBorder,
-  },
-  headerBlur: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: THEME.accent,
-    shadowRadius: 10,
-    shadowOpacity: 0.5,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: THEME.text,
-    marginLeft: 12,
-    letterSpacing: -1,
-  },
   cardsContainer: {
-    flex: 1,
+    height: height * 0.75,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    marginTop: 10,
   },
-  buttonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 40,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  detailsContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
     paddingBottom: 40,
   },
-  glassButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: THEME.glassBorder,
+  infoSection: {
+    marginBottom: 20,
   },
-  buttonIconBg: {
-    flex: 1,
-    justifyContent: 'center',
+  name: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: THEME.text,
+  },
+  job: {
+    fontSize: 18,
+    color: THEME.secondaryText,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME.secondaryText,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  bioText: {
+    fontSize: 16,
+    color: THEME.text,
+    lineHeight: 24,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: 'rgba(255, 45, 85, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 45, 85, 0.3)',
+  },
+  chipText: {
+    color: THEME.accent,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  detailItems: {
+    gap: 12,
+  },
+  detailItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
-  shadowRed: {
-    shadowColor: THEME.error,
-    shadowRadius: 20,
-    shadowOpacity: 0.4,
-    elevation: 15,
-  },
-  shadowGreen: {
-    shadowColor: THEME.success,
-    shadowRadius: 20,
-    shadowOpacity: 0.4,
-    elevation: 15,
+  detailText: {
+    fontSize: 16,
+    color: THEME.text,
   },
   noMoreCards: {
     alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
   },
   emptyCircle: {
     width: 120,

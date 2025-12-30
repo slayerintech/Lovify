@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { AppHeader } from '../components/AppHeader';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,12 +70,7 @@ export default function MatchesScreen() {
       <LinearGradient colors={['#0f0f0f', '#000000']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Matches</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{matches.length}</Text>
-          </View>
-        </View>
+        <AppHeader />
 
         <FlatList
           data={matches}
@@ -105,31 +101,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -1,
-  },
-  badge: {
-    backgroundColor: '#FF2D55',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 10,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
   },
   list: {
     paddingHorizontal: 20,

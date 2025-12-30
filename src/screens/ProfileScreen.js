@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, SafeAreaView, Alert, Dimensions, StatusBar, TouchableOpacity } from 'react-native';
 import { useAuth } from '../services/AuthContext';
 import { GlassButton } from '../components/GlassButton';
+import { AppHeader } from '../components/AppHeader';
 import { COLORS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import { seedUsers } from '../utils/seeder';
@@ -10,6 +11,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+const PerkItem = ({ icon, text }) => (
+  <View style={styles.perkItem}>
+    <View style={styles.perkIconCircle}>
+      <Ionicons name={icon} size={16} color="#FFD700" />
+    </View>
+    <Text style={styles.perkText}>{text}</Text>
+  </View>
+);
 
 export default function ProfileScreen() {
   const { userData, logout } = useAuth();
@@ -41,29 +51,82 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#1a0b12', '#000000', '#000']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#000000', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
+        <AppHeader />
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           
-          {/* Profile Header with Glass Aura */}
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarWrapper}>
-              <LinearGradient colors={['#FF2D55', '#5856D6']} style={styles.avatarGradient}>
+          {/* New Horizontal Profile Header */}
+          <View style={styles.profileSection}>
+            <View style={styles.profileRow}>
+              {/* Profile Picture */}
+              <View style={styles.avatarContainer}>
                 <Image source={{ uri: userData.photos[0] }} style={styles.avatar} />
-              </LinearGradient>
-              <TouchableOpacity style={styles.editIconBadge} onPress={() => navigation.navigate('EditProfile')}>
-                <Ionicons name="camera" size={20} color="#fff" />
+                <View style={styles.onlineIndicator} />
+              </View>
+
+              {/* Name & Age */}
+              <View style={styles.userInfo}>
+                <Text style={styles.name}>{userData.name}, {userData.age}</Text>
+                <Text style={styles.subtext}>Ready to find love</Text>
+              </View>
+
+              {/* Edit Button (Glassy Style) */}
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={() => navigation.navigate('EditProfile')}
+                activeOpacity={0.8}
+              >
+                <BlurView intensity={80} tint="dark" style={styles.editButtonBlur}>
+                  <Ionicons name="pencil" size={20} color="#fff" />
+                </BlurView>
               </TouchableOpacity>
             </View>
-            
-            <Text style={styles.name}>{userData.name}, {userData.age}</Text>
-            <BlurView intensity={10} tint="light" style={styles.bioBadge}>
-               <Text style={styles.bio}>{userData.bio || "No bio yet. Tell the world who you are!"}</Text>
-            </BlurView>
           </View>
 
-          {/* Stats Section: Glass Cards */}
+          {/* Premium Card */}
+          <View style={styles.premiumContainer}>
+            <LinearGradient
+              colors={['#1c1c1e', '#2c2c2e']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.premiumCard}
+            >
+              {/* Gold Border/Glow effect using a pseudo-element logic or nested views if needed, 
+                  but here we'll use a border on the card itself */}
+              
+              <View style={styles.premiumHeader}>
+                <View>
+                  <Text style={styles.premiumTitle}>Lovify Premium</Text>
+                  <Text style={styles.premiumSubtitle}>Unlock exclusive features</Text>
+                </View>
+                <View style={styles.proBadge}>
+                  <Text style={styles.proText}>PRO</Text>
+                </View>
+              </View>
+
+              <View style={styles.perksContainer}>
+                <PerkItem icon="infinite" text="Unlimited Swipes" />
+                <PerkItem icon="eye" text="See Who Likes You" />
+                <PerkItem icon="flash" text="1 Free Boost per month" />
+                <PerkItem icon="star" text="5 Super Likes a day" />
+              </View>
+
+              <TouchableOpacity activeOpacity={0.9}>
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.upgradeButton}
+                >
+                  <Text style={styles.upgradeButtonText}>UPGRADE NOW</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+
+          {/* Stats Section (Kept for completeness but styled to fit new layout) */}
           <View style={styles.statsContainer}>
             <BlurView intensity={20} tint="dark" style={styles.statCard}>
                <Ionicons name="transgender-outline" size={24} color="#FF2D55" />
@@ -78,15 +141,9 @@ export default function ProfileScreen() {
             </BlurView>
           </View>
 
-          {/* Action Buttons */}
+          {/* Settings & Logout */}
           <View style={styles.actionSection}>
-            <Text style={styles.menuTitle}>Account Settings</Text>
-            
-            <GlassButton 
-              title="Edit Profile" 
-              onPress={() => navigation.navigate('EditProfile')} 
-              style={styles.button}
-            />
+            <Text style={styles.menuTitle}>Settings</Text>
             
             <GlassButton 
               title="Populate Profiles (Dev)" 
@@ -97,7 +154,7 @@ export default function ProfileScreen() {
             <TouchableOpacity style={styles.logoutRow} onPress={logout}>
                <LinearGradient colors={['rgba(255, 45, 85, 0.1)', 'transparent']} style={styles.logoutGradient}>
                   <Ionicons name="log-out-outline" size={22} color="#FF453A" />
-                  <Text style={styles.logoutText}>Logout from Lovify</Text>
+                  <Text style={styles.logoutText}>Logout</Text>
                </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -117,93 +174,178 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 120, // Tab bar space
-    alignItems: 'center',
+    paddingBottom: 120,
   },
-  profileHeader: {
-    alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 40,
+  // Profile Section Styles
+  profileSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+    marginTop: 10,
   },
-  avatarWrapper: {
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  avatarContainer: {
     position: 'relative',
-    marginBottom: 20,
-  },
-  avatarGradient: {
-    padding: 4,
-    borderRadius: 85,
   },
   avatar: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 5,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: '#333',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#32D74B',
+    borderWidth: 2,
     borderColor: '#000',
   },
-  editIconBadge: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    backgroundColor: '#FF2D55',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  userInfo: {
+    flex: 1,
+    marginLeft: 15,
     justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000',
   },
   name: {
-    fontSize: 32,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  subtext: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  editButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  editButtonBlur: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Premium Card Styles
+  premiumContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  premiumCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)', // Goldish border
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  premiumHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  premiumTitle: {
+    fontSize: 28,
     fontWeight: '900',
     color: '#fff',
     letterSpacing: -1,
-    marginBottom: 12,
   },
-  bioBadge: {
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    maxWidth: width * 0.8,
+  premiumSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
   },
-  bio: {
-    fontSize: 15,
-    color: '#8E8E93',
-    textAlign: 'center',
-    lineHeight: 20,
+  proBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
+  proText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 18,
+  },
+  perksContainer: {
+    marginBottom: 20,
+    gap: 12,
+  },
+  perkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  perkIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  perkText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  upgradeButton: {
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  // Stats Styles
   statsContainer: {
     flexDirection: 'row',
     gap: 15,
     paddingHorizontal: 20,
-    marginBottom: 40,
+    marginBottom: 30,
   },
   statCard: {
     flex: 1,
-    paddingVertical: 20,
+    paddingVertical: 15,
     alignItems: 'center',
-    borderRadius: 25,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   statValue: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
-    marginTop: 8,
+    marginTop: 6,
     textTransform: 'capitalize',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#8E8E93',
     fontWeight: '600',
     textTransform: 'uppercase',
     marginTop: 2,
   },
+
+  // Action Section
   actionSection: {
     width: '100%',
     paddingHorizontal: 25,
@@ -214,12 +356,12 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 20,
+    marginBottom: 15,
     marginLeft: 5,
   },
   button: {
     width: '100%',
-    height: 58,
+    height: 56,
     marginBottom: 15,
   },
   devButton: {
@@ -227,7 +369,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(50, 215, 75, 0.2)',
   },
   logoutRow: {
-    marginTop: 20,
+    marginTop: 10,
     borderRadius: 20,
     overflow: 'hidden',
   },
@@ -235,7 +377,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
+    paddingVertical: 16,
     gap: 10,
   },
   logoutText: {

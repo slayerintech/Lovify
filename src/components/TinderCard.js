@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -10,6 +10,8 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { COLORS } from '../styles/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -34,6 +36,7 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
   }));
 
   const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10]) // Only activate on horizontal movement
     .onBegin(() => {
       startX.value = translateX.value;
       startY.value = translateY.value;
@@ -85,14 +88,18 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.card, animatedStyle]}>
+        {/* Full Screen Image */}
         <Image source={{ uri: user.photos[0] }} style={styles.image} />
+        
+        {/* Gradient Overlay */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.9)']}
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
           style={styles.gradient}
-        >
+        />
+
+        <View style={styles.cardInfo}>
           <Text style={styles.name}>{user.name}, {user.age}</Text>
-          <Text style={styles.bio} numberOfLines={2}>{user.bio}</Text>
-        </LinearGradient>
+        </View>
 
         <Animated.View style={[styles.likeLabel, likeOpacity]}>
           <Text style={styles.likeText}>LIKE</Text>
@@ -111,7 +118,7 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     height: height * 0.7,
     borderRadius: 20,
-    backgroundColor: COLORS.card,
+    backgroundColor: '#1a1a1a',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
@@ -120,8 +127,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   image: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
@@ -131,19 +141,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 160,
-    padding: 20,
-    justifyContent: 'flex-end',
+    height: '30%',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  cardInfo: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    zIndex: 2,
   },
   name: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: 'bold',
     color: COLORS.white,
-  },
-  bio: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    marginTop: 5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   likeLabel: {
     position: 'absolute',
@@ -154,6 +168,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.success,
     paddingHorizontal: 10,
     borderRadius: 5,
+    zIndex: 100,
   },
   likeText: {
     fontSize: 32,
@@ -169,6 +184,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.error,
     paddingHorizontal: 10,
     borderRadius: 5,
+    zIndex: 100,
   },
   nopeText: {
     fontSize: 32,
@@ -176,3 +192,4 @@ const styles = StyleSheet.create({
     color: COLORS.error,
   },
 });
+
