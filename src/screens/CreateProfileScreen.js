@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Image, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Image, TouchableOpacity, Dimensions, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -7,72 +7,111 @@ import { db, storage } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import { GlassButton } from '../components/GlassButton';
 import { GlassInput } from '../components/GlassInput';
+import { GlassChip } from '../components/GlassChip';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur'; // Make sure this is installed
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 const GRID_SPACING = 10;
-const PADDING = 25;
-// Perfect 3-column calculation
-const PHOTO_SIZE = (width - (PADDING * 2) - (GRID_SPACING * 2)) / 3;
+const PHOTO_SIZE = (width - 60) / 3;
 
-const INTERESTS_OPTIONS = ["Music", "Travel", "Gym", "Movies", "Cooking", "Gaming", "Art", "Coding", "Yoga"];
+const INTERESTS_LIST = [
+  { label: "Music", icon: "musical-notes-outline" },
+  { label: "Food", icon: "restaurant-outline" },
+  { label: "Travel", icon: "airplane-outline" },
+  { label: "Gym", icon: "barbell-outline" },
+  { label: "Movies", icon: "videocam-outline" },
+  { label: "Dance", icon: "disc-outline" },
+  { label: "Bars", icon: "wine-outline" },
+  { label: "Club", icon: "beer-outline" },
+  { label: "Anime", icon: "tv-outline" },
+  { label: "Beaches", icon: "water-outline" },
+  { label: "Mountains", icon: "trail-sign-outline" },
+  { label: "Reading", icon: "book-outline" }
+];
+
+const GENDER_OPTIONS = [
+  { label: 'Male', icon: 'male-outline' },
+  { label: 'Female', icon: 'female-outline' },
+  { label: 'Other', icon: 'male-female-outline' }
+];
+
+const INTERESTED_IN_OPTIONS = [
+  { label: 'Men', icon: 'male-outline' },
+  { label: 'Women', icon: 'female-outline' },
+  { label: 'Both', icon: 'people-outline' }
+];
+
+const LOOKING_FOR_OPTIONS = [
+  { label: "Long time partner", icon: "heart-outline" },
+  { label: "Short time partner", icon: "hourglass-outline" },
+  { label: "No commitment", icon: "happy-outline" },
+  { label: "Still figuring it out", icon: "help-circle-outline" },
+  { label: "Hook up type", icon: "flame-outline" },
+  { label: "Chill type", icon: "cafe-outline" }
+];
+
+const RELIGION_OPTIONS = [
+  { label: 'Hindu', icon: 'rose-outline' },
+  { label: 'Christian', icon: 'book-outline' },
+  { label: 'Muslim', icon: 'moon-outline' },
+  { label: 'Sikh', icon: 'flame-outline' }
+];
 
 export default function CreateProfileScreen() {
   const { user, userData, refreshUserData } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  // Form State
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
-  const [gender, setGender] = useState('');
-  const [interestedIn, setInterestedIn] = useState('');
   const [bio, setBio] = useState('');
   const [job, setJob] = useState('');
   const [photos, setPhotos] = useState([]);
   const [interests, setInterests] = useState([]);
-  const [uploading, setUploading] = useState(false);
+  const [gender, setGender] = useState('');
+  const [interestedIn, setInterestedIn] = useState('');
+  const [lookingFor, setLookingFor] = useState('');
+  const [religion, setReligion] = useState('');
 
   useEffect(() => {
     if (userData) {
       setName(userData.name || '');
       setAge(userData.age ? userData.age.toString() : '');
+      setBio(userData.bio || '');
+      setJob(userData.job || '');
+      setPhotos(userData.photos || []);
+      setInterests(userData.interests || []);
       setGender(userData.gender || '');
       setInterestedIn(userData.interestedIn || '');
-      setBio(userData.bio || '');
-      setPhotos(userData.photos || []);
-      setJob(userData.job || '');
-      setInterests(userData.interests || []);
+      setLookingFor(userData.lookingFor || '');
+      setReligion(userData.religion || '');
     }
   }, [userData]);
 
-  const toggleInterest = (interest) => {
-    if (interests.includes(interest)) {
-      setInterests(interests.filter(i => i !== interest));
-    } else {
-      setInterests([...interests, interest]);
-    }
-  };
-
   const pickImage = async () => {
-    if (photos.length >= 6) {
-      Alert.alert('Limit reached', 'Max 6 photos allowed.');
-      return;
-    }
+    if (photos.length >= 6) { Alert.alert('Limit reached', 'Max 6 photos allowed.'); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Grant access to photos to continue.');
-      return;
-    }
-
+    if (status !== 'granted') return;
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [3, 4],
       quality: 0.6,
     });
+    if (!result.canceled) setPhotos([...photos, result.assets[0].uri]);
+  };
 
-    if (!result.canceled) {
-      setPhotos([...photos, result.assets[0].uri]);
-    }
+  const removePhoto = (index) => {
+    const newPhotos = [...photos];
+    newPhotos.splice(index, 1);
+    setPhotos(newPhotos);
+  };
+
+  const toggleInterest = (interest) => {
+    if (interests.includes(interest)) setInterests(interests.filter(i => i !== interest));
+    else setInterests([...interests, interest]);
   };
 
   const uploadImage = async (uri, index) => {
@@ -85,198 +124,238 @@ export default function CreateProfileScreen() {
     return await getDownloadURL(storageRef);
   };
 
-  const saveProfile = async () => {
-    if (!name || !age || !gender || !interestedIn || photos.length === 0) {
-      Alert.alert('Incomplete', 'Please fill all required fields.');
+  const handleSave = async () => {
+    const missing = [];
+    if (!name) missing.push('Name');
+    if (!age) missing.push('Age');
+    if (photos.length < 1) missing.push('At least 1 Photo'); // Enforce at least 1 photo
+    if (!gender) missing.push('Gender (I am a...)');
+    if (!interestedIn) missing.push('Interested In');
+    if (!lookingFor) missing.push('Looking For');
+    if (!religion) missing.push('Religion');
+    if (interests.length === 0) missing.push('At least 1 Interest');
+
+    if (missing.length > 0) {
+      Alert.alert('Incomplete Profile', 'Please complete the following sections:\n\n' + missing.join('\n'));
       return;
     }
-
-    setUploading(true);
+    
+    setLoading(true);
     try {
       const photoUrls = await Promise.all(photos.map((photo, index) => uploadImage(photo, index)));
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
+      const updateData = {
         id: user.uid,
         name,
         age: parseInt(age),
-        gender: gender.toLowerCase(),
-        interestedIn: interestedIn.toLowerCase(),
         bio,
         job,
-        interests,
         photos: photoUrls,
+        interests,
+        gender,
+        interestedIn,
+        lookingFor,
+        religion,
         updatedAt: serverTimestamp(),
         ...(userData ? {} : { createdAt: serverTimestamp() }),
-      }, { merge: true });
-
+      };
+      await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
       await refreshUserData();
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', 'Update failed: ' + error.message);
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
+  const renderGridOption = (option, selectedValue, onSelect) => (
+    <TouchableOpacity 
+      key={option.label} 
+      style={[styles.gridOption, selectedValue === option.label && styles.gridOptionSelected]} 
+      onPress={() => onSelect(option.label)}
+    >
+      <Ionicons 
+        name={option.icon} 
+        size={24} 
+        color={selectedValue === option.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} 
+        style={{ marginBottom: 5 }} 
+      />
+      <Text style={[styles.gridOptionText, selectedValue === option.label && styles.gridOptionTextSelected]}>
+        {option.label}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#1a0b12', '#000']} style={StyleSheet.absoluteFill} />
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={['#1a080e', '#000000']} style={StyleSheet.absoluteFill} />
       
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{userData ? 'Edit Profile' : 'New Account'}</Text>
-        
-        {/* Symmetric Photo Grid */}
-        <Text style={styles.label}>Profile Photos ({photos.length}/6)</Text>
-        <View style={styles.photoGrid}>
-          {Array(6).fill(0).map((_, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={styles.photoBox} 
-              onPress={() => !photos[index] && pickImage()}
-              activeOpacity={0.7}
-            >
-              {photos[index] ? (
-                <View style={styles.fullSize}>
-                  <Image source={{ uri: photos[index] }} style={styles.photo} />
-                  <TouchableOpacity 
-                    style={styles.removeBtn} 
-                    onPress={() => setPhotos(photos.filter((_, i) => i !== index))}
-                  >
-                    <View style={styles.closeIconWrapper}>
-                      <Ionicons name="close" size={14} color="#fff" />
+      <SafeAreaView style={styles.safeArea}>
+        {/* Transparent Header */}
+        <BlurView intensity={20} tint="dark" style={styles.headerBlur}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Complete Your Profile</Text>
+            <TouchableOpacity onPress={handleSave} disabled={loading}>
+              {loading ? <ActivityIndicator size="small" color="#FF2D55" /> : <Text style={styles.saveText}>Save</Text>}
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Photos Section */}
+            <Text style={styles.sectionTitle}>Profile Photos ({photos.length}/6)</Text>
+            <View style={styles.photosGrid}>
+              {Array(6).fill(0).map((_, index) => (
+                <TouchableOpacity key={index} style={styles.photoBox} onPress={() => !photos[index] && pickImage()}>
+                  {photos[index] ? (
+                    <View style={styles.fullSize}>
+                      <Image source={{ uri: photos[index] }} style={styles.photo} />
+                      <TouchableOpacity style={styles.removeBtn} onPress={() => removePhoto(index)}>
+                        <Ionicons name="close-circle" size={20} color="#FF2D55" />
+                      </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  ) : (
+                    <View style={styles.addPlaceholder}>
+                      <Ionicons name="add" size={24} color="rgba(255,255,255,0.2)" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Basic Info Group */}
+            <Text style={styles.sectionTitle}>Basic Info</Text>
+            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
+                <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Name</Text>
+                    <GlassInput 
+                        value={name} 
+                        onChangeText={setName} 
+                        containerStyle={styles.rowInput} 
+                        style={styles.alignRight} 
+                        placeholder="Enter Name" 
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                    />
                 </View>
-              ) : (
-                <View style={styles.addPlaceholder}>
-                  <Ionicons name="add" size={28} color="rgba(255,255,255,0.2)" />
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Job Title</Text>
+                    <GlassInput 
+                        value={job} 
+                        onChangeText={setJob} 
+                        containerStyle={styles.rowInput} 
+                        style={styles.alignRight} 
+                        placeholder="Enter Job" 
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                    />
                 </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
+                <View style={styles.divider} />
+                <View style={styles.row}>
+                    <Text style={styles.rowLabel}>Age</Text>
+                    <GlassInput 
+                        value={age} 
+                        onChangeText={setAge} 
+                        keyboardType="numeric" 
+                        containerStyle={styles.rowInput} 
+                        style={styles.alignRight} 
+                        placeholder="Age" 
+                        placeholderTextColor="rgba(255,255,255,0.3)"
+                    />
+                </View>
+            </BlurView>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Personal Details</Text>
-          <GlassInput value={name} onChangeText={setName} placeholder="Full Name" />
-          <GlassInput value={age} onChangeText={setAge} placeholder="Age" keyboardType="number-pad" />
-          <GlassInput value={job} onChangeText={setJob} placeholder="Job Title / Company" />
-        </View>
+            {/* Bio Section */}
+            <Text style={styles.sectionTitle}>About Me</Text>
+            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
+                <GlassInput 
+                    placeholder="Tell them About your self" 
+                    value={bio} 
+                    onChangeText={setBio} 
+                    multiline 
+                    containerStyle={{borderWidth: 0, backgroundColor: 'transparent'}}
+                    style={styles.bioInput} 
+                />
+            </BlurView>
 
-        <Text style={styles.label}>Gender</Text>
-        <View style={styles.pillRow}>
-          {['Male', 'Female'].map(g => (
-            <TouchableOpacity 
-              key={g} 
-              style={[styles.pill, gender.toLowerCase() === g.toLowerCase() && styles.pillActive]}
-              onPress={() => setGender(g)}
-            >
-              <Text style={[styles.pillText, gender.toLowerCase() === g.toLowerCase() && styles.pillTextActive]}>{g}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {/* Gender Section */}
+            <Text style={styles.sectionTitle}>I am a</Text>
+            <View style={styles.gridContainer}>
+              {GENDER_OPTIONS.map(opt => renderGridOption(opt, gender, setGender))}
+            </View>
 
-        <Text style={styles.label}>Interested In</Text>
-        <View style={styles.pillRow}>
-          {['Male', 'Female', 'Both'].map(i => (
-            <TouchableOpacity 
-              key={i} 
-              style={[styles.pill, interestedIn.toLowerCase() === i.toLowerCase() && styles.pillActive]}
-              onPress={() => setInterestedIn(i)}
-            >
-              <Text style={[styles.pillText, interestedIn.toLowerCase() === i.toLowerCase() && styles.pillTextActive]}>{i}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {/* Interested In Section */}
+            <Text style={styles.sectionTitle}>Interested In</Text>
+            <View style={styles.gridContainer}>
+              {INTERESTED_IN_OPTIONS.map(opt => renderGridOption(opt, interestedIn, setInterestedIn))}
+            </View>
 
-        <Text style={styles.label}>Interests</Text>
-        <View style={styles.interestsGrid}>
-          {INTERESTS_OPTIONS.map(item => (
-            <TouchableOpacity 
-              key={item} 
-              style={[styles.interestTag, interests.includes(item) && styles.interestTagActive]}
-              onPress={() => toggleInterest(item)}
-            >
-              <Text style={[styles.tagText, interests.includes(item) && styles.tagTextActive]}>{item}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {/* Looking For Section */}
+            <Text style={styles.sectionTitle}>Looking For</Text>
+            <View style={styles.gridContainer}>
+              {LOOKING_FOR_OPTIONS.map(opt => renderGridOption(opt, lookingFor, setLookingFor))}
+            </View>
 
-        <Text style={styles.label}>Bio</Text>
-        <GlassInput 
-          value={bio} 
-          onChangeText={setBio} 
-          placeholder="Tell us something interesting..." 
-          multiline 
-          style={styles.bioInput}
-        />
+            {/* Religion Section */}
+            <Text style={styles.sectionTitle}>Religion</Text>
+            <View style={styles.gridContainer}>
+              {RELIGION_OPTIONS.map(opt => renderGridOption(opt, religion, setReligion))}
+            </View>
 
-        <View style={styles.footer}>
-          <GlassButton 
-            title={uploading ? "Saving..." : "Done"} 
-            onPress={saveProfile} 
-            disabled={uploading}
-          />
-        </View>
-      </ScrollView>
+            {/* Interests Section */}
+            <Text style={styles.sectionTitle}>Interests</Text>
+            <View style={styles.interestsContainer}>
+                {INTERESTS_LIST.map((item) => (
+                    <GlassChip 
+                      key={item.label} 
+                      label={item.label} 
+                      icon={item.icon}
+                      selected={interests.includes(item.label)} 
+                      onPress={() => toggleInterest(item.label)} 
+                      style={{ width: '48%', marginRight: 0, marginBottom: 0 }}
+                    />
+                ))}
+            </View>
+
+            <View style={{ height: 100 }} />
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  content: { paddingHorizontal: PADDING, paddingTop: 60, paddingBottom: 100 },
-  title: { fontSize: 34, fontWeight: '900', color: '#fff', marginBottom: 25, letterSpacing: -1 },
-  label: { color: '#8E8E93', fontWeight: '800', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 15, marginTop: 25 },
+  safeArea: { flex: 1},
+  headerBlur: { borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, height: 100, paddingBottom: 15 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  saveText: { color: '#FF2D55', fontSize: 17, fontWeight: '800' },
+  content: { paddingHorizontal: 20 },
+  sectionTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 25, marginBottom: 10, marginLeft: 5 },
   
-  photoGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    justifyContent: 'flex-start',
-    marginLeft: -GRID_SPACING / 2,
-    marginRight: -GRID_SPACING / 2,
-  },
-  photoBox: { 
-    width: PHOTO_SIZE, 
-    height: PHOTO_SIZE * 1.35, 
-    margin: GRID_SPACING / 2, 
-    borderRadius: 16, 
-    backgroundColor: 'rgba(255,255,255,0.04)', 
-    borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.08)', 
-    overflow: 'hidden' 
-  },
+  // Photos Grid
+  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_SPACING, justifyContent: 'center' },
+  photoBox: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.3, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
   fullSize: { flex: 1 },
   photo: { width: '100%', height: '100%', resizeMode: 'cover' },
   addPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  removeBtn: { 
-    position: 'absolute', 
-    top: 6, 
-    right: 6,
-    zIndex: 10,
-  },
-  closeIconWrapper: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FF2D55', // Solid pink for the remove button
-  },
+  removeBtn: { position: 'absolute', top: 5, right: 5 },
 
-  inputGroup: { gap: 12 },
+  // Glass Grouping Styles
+  glassGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)', paddingVertical: 5 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 50 },
+  rowLabel: { color: '#fff', fontSize: 16, fontWeight: '500' },
+  rowInput: { flex: 1, backgroundColor: 'transparent', borderWidth: 0, height: '100%', justifyContent: 'center' },
+  alignRight: { textAlign: 'right', color: '#FF2D55', fontWeight: '700', paddingBottom: 0 ,paddingRight: 15 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 15 },
+  bioInput: { height: 80, textAlignVertical: 'top', color: '#fff', paddingHorizontal: 15, paddingTop: 10 },
+  
+  // Grid Styles
+  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  gridOption: { width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  gridOptionSelected: { backgroundColor: 'rgba(255, 45, 85, 0.3)', borderColor: '#FF2D55' },
+  gridOptionText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', marginTop: 4 },
+  gridOptionTextSelected: { color: '#fff', fontWeight: 'bold' },
 
-  pillRow: { flexDirection: 'row', gap: 10 },
-  pill: { paddingVertical: 12, paddingHorizontal: 22, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  pillActive: { backgroundColor: '#FF2D55', borderColor: '#FF2D55' },
-  pillText: { color: '#8E8E93', fontWeight: '700', fontSize: 14 },
-  pillTextActive: { color: '#fff' },
-
-  interestsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  interestTag: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  interestTagActive: { borderColor: '#FF2D55', backgroundColor: 'rgba(255,45,85,0.15)' },
-  tagText: { color: '#8E8E93', fontSize: 13, fontWeight: '600' },
-  tagTextActive: { color: '#FF2D55' },
-
-  bioInput: { height: 100, textAlignVertical: 'top', paddingTop: 15 },
-  footer: { marginTop: 40 },
+  interestsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', paddingHorizontal: 10 },
 });

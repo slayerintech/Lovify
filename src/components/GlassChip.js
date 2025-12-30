@@ -1,36 +1,48 @@
 import React from 'react';
-import { Text, StyleSheet, Pressable } from 'react-native';
+import { Text, StyleSheet, Pressable, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 
-export const GlassChip = ({ label, selected, onPress }) => {
+export const GlassChip = ({ label, icon, selected, onPress, style }) => {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [
       styles.container,
+      style,
       { opacity: pressed ? 0.8 : 1 }
     ]}>
       {selected ? (
         <LinearGradient
-          colors={['#6e33b1', '#c0b4e3']}
+          colors={['#FF2D55', '#FF6B8B']} // Updated to match app theme (pink/red)
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
       ) : (
-        <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
       )}
       
-      <Text style={[
-        styles.text,
-        selected && styles.selectedText
-      ]}>
-        {label}
-      </Text>
+      <View style={styles.content}>
+        {icon && (
+          <Ionicons 
+            name={icon} 
+            size={18} 
+            color={selected ? '#fff' : 'rgba(255,255,255,0.7)'} 
+            style={styles.icon}
+          />
+        )}
+        <Text style={[
+          styles.text,
+          selected && styles.selectedText
+        ]}>
+          {label}
+        </Text>
+      </View>
       
       {!selected && (
         <LinearGradient
-          colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+          colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']}
           style={styles.border}
         />
       )}
@@ -40,25 +52,35 @@ export const GlassChip = ({ label, selected, onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    marginBottom: 8,
+    marginBottom: 10,
     overflow: 'hidden',
-    minWidth: 80,
+    minWidth: 90,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    zIndex: 1,
+    gap: 6,
   },
   text: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
-    fontWeight: '500',
-    zIndex: 1,
+    fontWeight: '600',
   },
   selectedText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  icon: {
+    marginTop: -1,
   },
   border: {
     position: 'absolute',
@@ -67,7 +89,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 20,
   },
 });

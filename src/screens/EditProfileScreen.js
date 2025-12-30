@@ -17,7 +17,20 @@ const { width } = Dimensions.get('window');
 const GRID_SPACING = 10;
 const PHOTO_SIZE = (width - 60) / 3;
 
-const INTERESTS_LIST = ["Music", "Travel", "Gym", "Movies", "Cooking", "Gaming", "Art", "Coding", "Yoga", "Photography", "Hiking", "Reading"];
+const INTERESTS_LIST = [
+  { label: "Music", icon: "musical-notes-outline" },
+  { label: "Food", icon: "restaurant-outline" },
+  { label: "Travel", icon: "airplane-outline" },
+  { label: "Gym", icon: "barbell-outline" },
+  { label: "Movies", icon: "videocam-outline" },
+  { label: "Dance", icon: "disc-outline" },
+  { label: "Bars", icon: "wine-outline" },
+  { label: "Club", icon: "beer-outline" },
+  { label: "Anime", icon: "tv-outline" },
+  { label: "Beaches", icon: "water-outline" },
+  { label: "Mountains", icon: "trail-sign-outline" },
+  { label: "Reading", icon: "book-outline" }
+];
 
 export default function EditProfileScreen({ navigation }) {
   const { userData, refreshUserData, user } = useAuth();
@@ -313,9 +326,19 @@ export default function EditProfileScreen({ navigation }) {
 
             {/* Interests Section */}
             <Text style={styles.sectionTitle}>Interests</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={{ paddingRight: 20 }}
+            >
                 {INTERESTS_LIST.map((item) => (
-                    <GlassChip key={item} label={item} selected={interests.includes(item)} onPress={() => toggleInterest(item)} />
+                    <GlassChip 
+                      key={item.label} 
+                      label={item.label} 
+                      icon={item.icon}
+                      selected={interests.includes(item.label)} 
+                      onPress={() => toggleInterest(item.label)} 
+                    />
                 ))}
             </ScrollView>
 
