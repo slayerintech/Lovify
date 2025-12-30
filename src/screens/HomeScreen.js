@@ -11,6 +11,7 @@ import { MatchModal } from '../components/MatchModal';
 import { AppHeader } from '../components/AppHeader';
 import { GlassChip } from '../components/GlassChip';
 import { INTERESTS_LIST } from '../data/constants';
+import { getLocalImage } from '../utils/imageMap';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
@@ -53,10 +54,11 @@ export default function HomeScreen() {
     if (!user || !userData) return;
     try {
       let passedUserIds = [];
-      if (!reset) {
-        const likesSnapshot = await getDocs(collection(db, 'likes', user.uid, 'liked'));
-        passedUserIds = likesSnapshot.docs.map(doc => doc.id);
-      }
+      // TEMPORARY: Commented out to show all users every time app restarts
+      // if (!reset) {
+      //   const likesSnapshot = await getDocs(collection(db, 'likes', user.uid, 'liked'));
+      //   passedUserIds = likesSnapshot.docs.map(doc => doc.id);
+      // }
       passedUserIds.push(user.uid);
 
       let q = query(collection(db, 'users'));
@@ -65,7 +67,16 @@ export default function HomeScreen() {
       
       // Filter out self and already swiped users
       let fetchedProfiles = usersSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => {
+          const data = doc.data();
+          const localImage = getLocalImage(doc.id);
+          return { 
+            id: doc.id, 
+            ...data,
+            // Override photos with local image if available
+            photos: localImage ? [localImage] : (data.photos || [data.photoURL])
+          };
+        })
         .filter((profile) => profile.id !== user.uid && !passedUserIds.includes(profile.id));
 
       // Sorting logic: 
@@ -135,7 +146,12 @@ export default function HomeScreen() {
           <View style={styles.cardsContainer}>
             {profiles.length > 0 ? (
               profiles.map((profile, index) => {
+                // Optimization: Only render the top 2 cards to reduce lag
                 const isTop = index === profiles.length - 1;
+                const isSecond = index === profiles.length - 2;
+                
+                if (!isTop && !isSecond) return null;
+
                 return (
                   <TinderCard
                     ref={isTop ? topCardRef : null}
@@ -149,15 +165,16 @@ export default function HomeScreen() {
             ) : (
               <View style={styles.noMoreCards}>
                 <BlurView intensity={20} tint="light" style={styles.emptyCircle}>
-                   <Ionicons name="sparkles" size={50} color={THEME.accent} />
+                   <Ionicons name="diamond-outline" size={50} color={THEME.accent} />
                 </BlurView>
-                <Text style={styles.noMoreText}>End of the world...</Text>
+                <Text style={styles.noMoreText}>You've seen everyone!</Text>
+                <Text style={styles.subText}>Upgrade to Premium to see more people and get unlimited swipes.</Text>
                 <TouchableOpacity 
                   style={styles.resetButton}
-                  onPress={() => { setLoading(true); fetchProfiles(true); }}
+                  onPress={() => { /* Navigate to Premium Screen or show modal */ }}
                 >
                   <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
-                     <Text style={styles.resetButtonText}>Refresh Universe</Text>
+                     <Text style={styles.resetButtonText}>Upgrade to Pro</Text>
                   </BlurView>
                 </TouchableOpacity>
               </View>
@@ -388,6 +405,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 25,
     letterSpacing: -0.5,
+  },
+  subText: {
+    color: THEME.secondaryText,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+    marginBottom: 30,
+    lineHeight: 20,
   },
   resetButton: {
     borderRadius: 25,

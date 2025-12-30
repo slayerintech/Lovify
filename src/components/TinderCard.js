@@ -16,20 +16,30 @@ import { COLORS } from '../styles/theme';
 
 const { width, height } = Dimensions.get('window');
 
-export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) => {
+export const TinderCard = React.memo(forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) => {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
 
+  // Optimization: Simple spring config
+  const SPRING_CONFIG = {
+    damping: 15,
+    stiffness: 120,
+    mass: 0.5,
+    overshootClamping: false,
+    restDisplacementThreshold: 0.01,
+    restSpeedThreshold: 0.01,
+  };
+
   useImperativeHandle(ref, () => ({
     swipeLeft: () => {
-      translateX.value = withSpring(-width * 1.5, {}, () => {
+      translateX.value = withSpring(-width * 1.5, SPRING_CONFIG, () => {
         runOnJS(onSwipeLeft)();
       });
     },
     swipeRight: () => {
-      translateX.value = withSpring(width * 1.5, {}, () => {
+      translateX.value = withSpring(width * 1.5, SPRING_CONFIG, () => {
         runOnJS(onSwipeRight)();
       });
     },
@@ -48,25 +58,26 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
     .onEnd((event) => {
       if (Math.abs(event.velocityX) > 400 || Math.abs(event.translationX) > width * 0.25) {
         if (event.translationX > 0) {
-          translateX.value = withSpring(width * 1.5, {}, () => {
+          translateX.value = withSpring(width * 1.5, SPRING_CONFIG, () => {
             runOnJS(onSwipeRight)();
           });
         } else {
-          translateX.value = withSpring(-width * 1.5, {}, () => {
+          translateX.value = withSpring(-width * 1.5, SPRING_CONFIG, () => {
             runOnJS(onSwipeLeft)();
           });
         }
       } else {
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
+        translateX.value = withSpring(0, SPRING_CONFIG);
+        translateY.value = withSpring(0, SPRING_CONFIG);
       }
     });
 
   const animatedStyle = useAnimatedStyle(() => {
+    // Simplify interpolation for smoother frame rates
     const rotate = interpolate(
       translateX.value,
-      [-width / 2, 0, width / 2],
-      [-10, 0, 10],
+      [-width, 0, width],
+      [-15, 0, 15],
       Extrapolate.CLAMP
     );
 
@@ -94,6 +105,7 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
         <Image 
           source={typeof user.photos[0] === 'number' ? user.photos[0] : { uri: user.photos[0] }} 
           style={styles.image} 
+          fadeDuration={0} // Disable fade animation for snappier loading
         />
         
         {/* Gradient Overlay */}
@@ -116,7 +128,7 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
       </Animated.View>
     </GestureDetector>
   );
-});
+}))
 
 const styles = StyleSheet.create({
   card: {
