@@ -157,6 +157,7 @@ export default function HomeScreen() {
                     ref={isTop ? topCardRef : null}
                     key={profile.id}
                     user={profile}
+                    active={isTop} // Pass active state for idle animation
                     onSwipeLeft={() => swipeLeft(index)}
                     onSwipeRight={() => swipeRight(index)}
                   />
