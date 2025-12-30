@@ -28,7 +28,7 @@ const INTERESTS_LIST = [
   { label: "Club", icon: "beer-outline" },
   { label: "Anime", icon: "tv-outline" },
   { label: "Beaches", icon: "water-outline" },
-  { label: "Mountains", icon: "trail-sign-outline" },
+  { label: "Mountain", icon: "trail-sign-outline" },
   { label: "Reading", icon: "book-outline" }
 ];
 

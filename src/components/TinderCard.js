@@ -48,11 +48,13 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
     .onEnd((event) => {
       if (Math.abs(event.velocityX) > 400 || Math.abs(event.translationX) > width * 0.25) {
         if (event.translationX > 0) {
-          translateX.value = withSpring(width * 1.5);
-          runOnJS(onSwipeRight)();
+          translateX.value = withSpring(width * 1.5, {}, () => {
+            runOnJS(onSwipeRight)();
+          });
         } else {
-          translateX.value = withSpring(-width * 1.5);
-          runOnJS(onSwipeLeft)();
+          translateX.value = withSpring(-width * 1.5, {}, () => {
+            runOnJS(onSwipeLeft)();
+          });
         }
       } else {
         translateX.value = withSpring(0);

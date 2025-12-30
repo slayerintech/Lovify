@@ -62,7 +62,7 @@ const BIOS = [
 
 const INTERESTS = [
   "Music", "Food", "Travel", "Gym", "Movies", "Dance", 
-  "Bars", "Club", "Anime", "Beaches", "Mountains", "Reading"
+  "Bars", "Club", "Anime", "Beaches", "Mountain", "Reading"
 ];
 
 const LOOKING_FOR = [

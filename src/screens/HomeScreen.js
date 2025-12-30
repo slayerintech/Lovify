@@ -9,10 +9,14 @@ import { useAuth } from '../services/AuthContext';
 import { TinderCard } from '../components/TinderCard';
 import { MatchModal } from '../components/MatchModal';
 import { AppHeader } from '../components/AppHeader';
+import { GlassChip } from '../components/GlassChip';
+import { INTERESTS_LIST } from '../data/constants';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { generateDummyUsers } from '../data/dummyUsers';
 
 const { width, height } = Dimensions.get('window');
+const GAP = 10;
+const ITEM_WIDTH = (width - 40 - (GAP * 2)) / 3; // 40 is paddingHorizontal (20*2)
 
 const THEME = {
   bg: '#000000',
@@ -165,46 +169,67 @@ export default function HomeScreen() {
                 </View>
               ) : null}
 
+              {/* Looking For Section */}
+              {currentProfile.lookingFor ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Looking For</Text>
+                  <View style={styles.chipContainer}>
+                    <View style={styles.chip}>
+                      <Ionicons name="search-outline" size={16} color={THEME.accent} style={{ marginRight: 6 }} />
+                      <Text style={styles.chipText}>{currentProfile.lookingFor}</Text>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+
               {/* Interests Section */}
               {currentProfile.interests && currentProfile.interests.length > 0 ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Interests</Text>
+                  <View style={styles.interestsContainer}>
+                    {currentProfile.interests.map((interest, index) => {
+                      const interestItem = INTERESTS_LIST.find(item => item.label === interest);
+                      const icon = interestItem ? interestItem.icon : 'star-outline';
+                      return (
+                        <GlassChip 
+                          key={index}
+                          label={interest}
+                          icon={icon}
+                          selected={true}
+                          onPress={() => {}}
+                          style={{ width: ITEM_WIDTH, marginRight: 0, marginBottom: 0 }}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              {/* Religion Section */}
+              {currentProfile.religion ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Religion</Text>
                   <View style={styles.chipContainer}>
-                    {currentProfile.interests.map((interest, index) => (
-                      <View key={index} style={styles.chip}>
-                        <Text style={styles.chipText}>{interest}</Text>
-                      </View>
-                    ))}
+                    <View style={styles.chip}>
+                      <Ionicons name="book-outline" size={16} color={THEME.accent} style={{ marginRight: 6 }} />
+                      <Text style={styles.chipText}>{currentProfile.religion}</Text>
+                    </View>
                   </View>
                 </View>
               ) : null}
 
               {/* Other Details */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Details</Text>
-                <View style={styles.detailItems}>
-                  {currentProfile.lookingFor ? (
-                    <View style={styles.detailItem}>
-                      <Ionicons name="search-outline" size={20} color={THEME.secondaryText} />
-                      <Text style={styles.detailText}>{currentProfile.lookingFor}</Text>
-                    </View>
-                  ) : null}
-                  
-                  {currentProfile.religion ? (
-                    <View style={styles.detailItem}>
-                      <Ionicons name="book-outline" size={20} color={THEME.secondaryText} />
-                      <Text style={styles.detailText}>{currentProfile.religion}</Text>
-                    </View>
-                  ) : null}
-
-                  {currentProfile.gender ? (
+              {currentProfile.gender ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Details</Text>
+                  <View style={styles.detailItems}>
                     <View style={styles.detailItem}>
                       <Ionicons name="person-outline" size={20} color={THEME.secondaryText} />
                       <Text style={styles.detailText}>{currentProfile.gender}</Text>
                     </View>
-                  ) : null}
+                  </View>
                 </View>
-              </View>
+              ) : null}
             </View>
           )}
           
@@ -268,10 +293,13 @@ const styles = StyleSheet.create({
     color: THEME.text,
   },
   job: {
-    fontSize: 18,
-    color: THEME.secondaryText,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: THEME.text,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
     marginTop: 4,
-    fontWeight: '500',
   },
   section: {
     marginBottom: 24,
@@ -289,6 +317,13 @@ const styles = StyleSheet.create({
     color: THEME.text,
     lineHeight: 24,
   },
+  interestsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 0,
+  },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -301,6 +336,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 45, 85, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   chipText: {
     color: THEME.accent,
