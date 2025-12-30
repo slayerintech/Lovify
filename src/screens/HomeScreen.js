@@ -12,7 +12,6 @@ import { AppHeader } from '../components/AppHeader';
 import { GlassChip } from '../components/GlassChip';
 import { INTERESTS_LIST } from '../data/constants';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { generateDummyUsers } from '../data/dummyUsers';
 
 const { width, height } = Dimensions.get('window');
 const GAP = 10;
@@ -60,19 +59,30 @@ export default function HomeScreen() {
       }
       passedUserIds.push(user.uid);
 
-      let q = userData.interestedIn === 'both' 
-        ? query(collection(db, 'users')) 
-        : query(collection(db, 'users'), where('gender', '==', userData.interestedIn));
+      let q = query(collection(db, 'users'));
 
       const usersSnapshot = await getDocs(q);
-      const fetchedProfiles = usersSnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter((profile) => !passedUserIds.includes(profile.id));
-
-      const dummyProfiles = generateDummyUsers().filter(profile => !passedUserIds.includes(profile.id));
       
-      // Combine dummy profiles at the end so they appear on top of the stack (since we render bottom-up)
-      setProfiles([...fetchedProfiles, ...dummyProfiles]);
+      // Filter out self and already swiped users
+      let fetchedProfiles = usersSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((profile) => profile.id !== user.uid && !passedUserIds.includes(profile.id));
+
+      // Sorting logic: 
+      // 1. Users matching 'interestedIn' come LAST (top of the stack)
+      // 2. Others come FIRST (bottom of the stack)
+      if (userData.interestedIn && userData.interestedIn !== 'both') {
+        fetchedProfiles.sort((a, b) => {
+          const aMatch = a.gender === userData.interestedIn;
+          const bMatch = b.gender === userData.interestedIn;
+          
+          if (aMatch && !bMatch) return 1;  // a goes to the end (top)
+          if (!aMatch && bMatch) return -1; // b goes to the end (top)
+          return 0;
+        });
+      }
+
+      setProfiles(fetchedProfiles);
     } catch (error) {
       console.error('Error:', error);
     } finally {
