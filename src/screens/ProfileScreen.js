@@ -15,7 +15,7 @@ const { width } = Dimensions.get('window');
 const PerkItem = ({ icon, text }) => (
   <View style={styles.perkItem}>
     <View style={styles.perkIconCircle}>
-      <Ionicons name={icon} size={16} color="#FFD700" />
+      <Ionicons name={icon} size={16} color="#FF2D55" />
     </View>
     <Text style={styles.perkText}>{text}</Text>
   </View>
@@ -115,7 +115,7 @@ export default function ProfileScreen() {
 
               <TouchableOpacity activeOpacity={0.9}>
                 <LinearGradient
-                  colors={['#FFD700', '#FFA500']}
+                  colors={['#FF2D55', '#FFA500']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.upgradeButton}
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   proBadge: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#FF2D55',
     paddingHorizontal: 10,
     paddingVertical: 2,
     borderRadius: 8,

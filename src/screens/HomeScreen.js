@@ -10,6 +10,7 @@ import { TinderCard } from '../components/TinderCard';
 import { MatchModal } from '../components/MatchModal';
 import { AppHeader } from '../components/AppHeader';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { generateDummyUsers } from '../data/dummyUsers';
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,7 +65,10 @@ export default function HomeScreen() {
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter((profile) => !passedUserIds.includes(profile.id));
 
-      setProfiles(fetchedProfiles);
+      const dummyProfiles = generateDummyUsers().filter(profile => !passedUserIds.includes(profile.id));
+      
+      // Combine dummy profiles at the end so they appear on top of the stack (since we render bottom-up)
+      setProfiles([...fetchedProfiles, ...dummyProfiles]);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -127,7 +131,7 @@ export default function HomeScreen() {
                     onSwipeRight={() => swipeRight(index)}
                   />
                 );
-              }).reverse() 
+              }) 
             ) : (
               <View style={styles.noMoreCards}>
                 <BlurView intensity={20} tint="light" style={styles.emptyCircle}>

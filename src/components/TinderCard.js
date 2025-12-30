@@ -89,7 +89,10 @@ export const TinderCard = forwardRef(({ user, onSwipeLeft, onSwipeRight }, ref) 
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.card, animatedStyle]}>
         {/* Full Screen Image */}
-        <Image source={{ uri: user.photos[0] }} style={styles.image} />
+        <Image 
+          source={typeof user.photos[0] === 'number' ? user.photos[0] : { uri: user.photos[0] }} 
+          style={styles.image} 
+        />
         
         {/* Gradient Overlay */}
         <LinearGradient

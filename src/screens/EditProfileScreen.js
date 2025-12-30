@@ -32,10 +32,37 @@ const INTERESTS_LIST = [
   { label: "Reading", icon: "book-outline" }
 ];
 
+const GENDER_OPTIONS = [
+  { label: 'Male', icon: 'male-outline' },
+  { label: 'Female', icon: 'female-outline' },
+  { label: 'Other', icon: 'male-female-outline' }
+];
+
+const INTERESTED_IN_OPTIONS = [
+  { label: 'Men', icon: 'male-outline' },
+  { label: 'Women', icon: 'female-outline' },
+  { label: 'Both', icon: 'people-outline' }
+];
+
+const LOOKING_FOR_OPTIONS = [
+  { label: "Long time partner", icon: "heart-outline" },
+  { label: "Short time partner", icon: "hourglass-outline" },
+  { label: "No commitment", icon: "happy-outline" },
+  { label: "Still figuring it out", icon: "help-circle-outline" },
+  { label: "Hook up type", icon: "flame-outline" },
+  { label: "Chill type", icon: "cafe-outline" }
+];
+
+const RELIGION_OPTIONS = [
+  { label: 'Hindu', icon: 'rose-outline' },
+  { label: 'Christian', icon: 'book-outline' },
+  { label: 'Muslim', icon: 'moon-outline' },
+  { label: 'Sikh', icon: 'flame-outline' }
+];
+
 export default function EditProfileScreen({ navigation }) {
   const { userData, refreshUserData, user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [activeSheet, setActiveSheet] = useState(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -125,74 +152,23 @@ export default function EditProfileScreen({ navigation }) {
     }
   };
 
-  // YOUR SHEET UI & FUNCTIONALITY (Untouched as requested)
-  const renderSheetContent = () => {
-    if (activeSheet === 'gender') {
-      const options = [{ label: 'Male', icon: 'male-outline' }, { label: 'Female', icon: 'female-outline' }, { label: 'Other', icon: 'male-female-outline' }];
-      return (
-        <View style={styles.sheetContent}>
-          <Text style={styles.sheetTitle}>I am a...</Text>
-          <View style={styles.gridContainer}>
-            {options.map((opt) => (
-              <TouchableOpacity key={opt.label} style={[styles.gridOption, gender === opt.label && styles.gridOptionSelected]} onPress={() => { setGender(opt.label); setActiveSheet(null); }}>
-                <Ionicons name={opt.icon} size={28} color={gender === opt.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} style={{ marginBottom: 8 }} />
-                <Text style={[styles.gridOptionText, gender === opt.label && styles.gridOptionTextSelected]}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      );
-    }
-    if (activeSheet === 'interestedIn') {
-        const options = [{ label: 'Men', icon: 'male-outline' }, { label: 'Women', icon: 'female-outline' }, { label: 'Both', icon: 'people-outline' }];
-        return (
-          <View style={styles.sheetContent}>
-            <Text style={styles.sheetTitle}>Interested In...</Text>
-            <View style={styles.gridContainer}>
-                {options.map((opt) => (
-                    <TouchableOpacity key={opt.label} style={[styles.gridOption, interestedIn === opt.label && styles.gridOptionSelected]} onPress={() => { setInterestedIn(opt.label); setActiveSheet(null); }}>
-                        <Ionicons name={opt.icon} size={28} color={interestedIn === opt.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} style={{ marginBottom: 8 }} />
-                        <Text style={[styles.gridOptionText, interestedIn === opt.label && styles.gridOptionTextSelected]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-          </View>
-        );
-      }
-    if (activeSheet === 'lookingFor') {
-        const options = [{ label: "Long time partner", icon: "heart-outline" }, { label: "Short time partner", icon: "hourglass-outline" }, { label: "No commitment", icon: "happy-outline" }, { label: "Still figuring it out", icon: "help-circle-outline" }, { label: "Hook up type", icon: "flame-outline" }, { label: "Chill type", icon: "cafe-outline" }];
-        return (
-            <View style={styles.sheetContent}>
-                <Text style={styles.sheetTitle}>What are you looking for</Text>
-                <View style={styles.gridContainer}>
-                    {options.map((opt) => (
-                        <TouchableOpacity key={opt.label} style={[styles.gridOption, lookingFor === opt.label && styles.gridOptionSelected]} onPress={() => { setLookingFor(opt.label); setActiveSheet(null); }}>
-                            <Ionicons name={opt.icon} size={28} color={lookingFor === opt.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} style={{ marginBottom: 8 }} />
-                            <Text style={[styles.gridOptionText, lookingFor === opt.label && styles.gridOptionTextSelected]}>{opt.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-        );
-    }
-    if (activeSheet === 'religion') {
-        const options = [{ label: 'Hindu', icon: 'rose-outline' }, { label: 'Christian', icon: 'book-outline' }, { label: 'Muslim', icon: 'moon-outline' }, { label: 'Sikh', icon: 'flame-outline' }];
-        return (
-          <View style={styles.sheetContent}>
-            <Text style={styles.sheetTitle}>Religion</Text>
-            <View style={styles.gridContainer}>
-                {options.map((opt) => (
-                    <TouchableOpacity key={opt.label} style={[styles.gridOption, religion === opt.label && styles.gridOptionSelected]} onPress={() => { setReligion(opt.label); setActiveSheet(null); }}>
-                        <Ionicons name={opt.icon} size={28} color={religion === opt.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} style={{ marginBottom: 8 }} />
-                        <Text style={[styles.gridOptionText, religion === opt.label && styles.gridOptionTextSelected]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-          </View>
-        );
-      }
-    return null;
-  };
+  const renderGridOption = (option, selectedValue, onSelect) => (
+    <TouchableOpacity 
+      key={option.label} 
+      style={[styles.gridOption, selectedValue === option.label && styles.gridOptionSelected]} 
+      onPress={() => onSelect(option.label)}
+    >
+      <Ionicons 
+        name={option.icon} 
+        size={24} 
+        color={selectedValue === option.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} 
+        style={{ marginBottom: 5 }} 
+      />
+      <Text style={[styles.gridOptionText, selectedValue === option.label && styles.gridOptionTextSelected]}>
+        {option.label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -267,41 +243,29 @@ export default function EditProfileScreen({ navigation }) {
                 />
             </BlurView>
 
-            {/* Preferences Group */}
-            <Text style={styles.sectionTitle}>Preferences</Text>
-            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
-                <TouchableOpacity style={styles.clickableRow} onPress={() => setActiveSheet('gender')}>
-                    <Text style={styles.rowLabel}>Gender</Text>
-                    <View style={styles.valRow}>
-                        <Text style={styles.rowVal}>{gender || 'Select'}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
-                    </View>
-                </TouchableOpacity>
-                <View style={styles.divider} />
-                <TouchableOpacity style={styles.clickableRow} onPress={() => setActiveSheet('interestedIn')}>
-                    <Text style={styles.rowLabel}>Interested In</Text>
-                    <View style={styles.valRow}>
-                        <Text style={styles.rowVal}>{interestedIn || 'Select'}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
-                    </View>
-                </TouchableOpacity>
-                <View style={styles.divider} />
-                <TouchableOpacity style={styles.clickableRow} onPress={() => setActiveSheet('lookingFor')}>
-                    <Text style={styles.rowLabel}>Looking For</Text>
-                    <View style={styles.valRow}>
-                        <Text style={styles.rowVal}>{lookingFor || 'Select'}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
-                    </View>
-                </TouchableOpacity>
-                <View style={styles.divider} />
-                <TouchableOpacity style={styles.clickableRow} onPress={() => setActiveSheet('religion')}>
-                    <Text style={styles.rowLabel}>Religion</Text>
-                    <View style={styles.valRow}>
-                        <Text style={styles.rowVal}>{religion || 'Select'}</Text>
-                        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
-                    </View>
-                </TouchableOpacity>
-            </BlurView>
+            {/* Gender Section */}
+            <Text style={styles.sectionTitle}>I am a</Text>
+            <View style={styles.gridContainer}>
+              {GENDER_OPTIONS.map(opt => renderGridOption(opt, gender, setGender))}
+            </View>
+
+            {/* Interested In Section */}
+            <Text style={styles.sectionTitle}>Interested In</Text>
+            <View style={styles.gridContainer}>
+              {INTERESTED_IN_OPTIONS.map(opt => renderGridOption(opt, interestedIn, setInterestedIn))}
+            </View>
+
+            {/* Looking For Section */}
+            <Text style={styles.sectionTitle}>Looking For</Text>
+            <View style={styles.gridContainer}>
+              {LOOKING_FOR_OPTIONS.map(opt => renderGridOption(opt, lookingFor, setLookingFor))}
+            </View>
+
+            {/* Religion Section */}
+            <Text style={styles.sectionTitle}>Religion</Text>
+            <View style={styles.gridContainer}>
+              {RELIGION_OPTIONS.map(opt => renderGridOption(opt, religion, setReligion))}
+            </View>
 
             {/* Discovery Settings */}
             <Text style={styles.sectionTitle}>Discovery Settings</Text>
@@ -326,11 +290,7 @@ export default function EditProfileScreen({ navigation }) {
 
             {/* Interests Section */}
             <Text style={styles.sectionTitle}>Interests</Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              contentContainerStyle={{ paddingRight: 20 }}
-            >
+            <View style={styles.interestsContainer}>
                 {INTERESTS_LIST.map((item) => (
                     <GlassChip 
                       key={item.label} 
@@ -338,9 +298,10 @@ export default function EditProfileScreen({ navigation }) {
                       icon={item.icon}
                       selected={interests.includes(item.label)} 
                       onPress={() => toggleInterest(item.label)} 
+                      style={{ width: '30%', marginRight: 0, marginBottom: 0 }}
                     />
                 ))}
-            </ScrollView>
+            </View>
 
             {/* App Settings */}
             <Text style={styles.sectionTitle}>App Experience</Text>
@@ -359,10 +320,6 @@ export default function EditProfileScreen({ navigation }) {
             <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
-
-      <GlassBottomSheet visible={!!activeSheet} onClose={() => setActiveSheet(null)}>
-        {renderSheetContent()}
-      </GlassBottomSheet>
     </View>
   );
 }
@@ -404,12 +361,12 @@ const styles = StyleSheet.create({
   centerText: { textAlign: 'center', color: '#FF2D55', fontWeight: '700' },
   chipsScroll: { flexDirection: 'row' },
 
-  // Sheet (Untouched UI/Functionality)
-  sheetContent: { padding: 20 },
-  sheetTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  // Grid Styles
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   gridOption: { width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   gridOptionSelected: { backgroundColor: 'rgba(255, 45, 85, 0.3)', borderColor: '#FF2D55' },
-  gridOptionText: { color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center' },
+  gridOptionText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', marginTop: 4 },
   gridOptionTextSelected: { color: '#fff', fontWeight: 'bold' },
+
+  interestsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', paddingHorizontal: 10 },
 });
