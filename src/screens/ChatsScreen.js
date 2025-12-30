@@ -125,8 +125,9 @@ const styles = StyleSheet.create({
     color: '#FF2D55',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    paddingHorizontal: 25,
+    paddingHorizontal: 5,
     marginBottom: 15,
+    marginTop: 10,
   },
   horizontalScroll: {
     paddingHorizontal: 20,
@@ -155,8 +156,9 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 100,
+    flexGrow: 1,
   },
   chatCardWrapper: {
     marginBottom: 12,
@@ -216,9 +218,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   empty: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 60,
+    // marginTop: 60, // Removed to center vertically
     paddingHorizontal: 40,
   },
   emptyIconBg: {

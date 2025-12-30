@@ -67,7 +67,7 @@ export default function MatchesScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#0f0f0f', '#000000']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
         <AppHeader />
@@ -79,6 +79,7 @@ export default function MatchesScreen() {
           numColumns={COLUMN_COUNT}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={<Text style={styles.sectionTitle}>Your Matches</Text>}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
@@ -106,6 +107,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 100, // For TabBar space
+    flexGrow: 1,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FF2D55',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: 5,
+    marginBottom: 15,
+    marginTop: 10,
   },
   cardWrapper: {
     width: CARD_WIDTH,
@@ -161,13 +173,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 100,
+    paddingHorizontal: 40,
   },
   emptyIconCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,45,85,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -176,10 +188,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 10,
   },
   emptySubText: {
     color: '#8E8E93',
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
