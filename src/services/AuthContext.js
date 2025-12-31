@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 const AuthContext = createContext({});
 
@@ -10,43 +10,53 @@ export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserData = async (uid) => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        setUserData(userDoc.data());
-      } else {
-        setUserData(null);
-      }
-    } catch (error) {
-      // If client is offline or database doesn't exist yet, treat as new user
-      console.log('Error fetching user data (treating as new user):', error.message);
-      setUserData(null);
-    }
-  };
-
+  // Listen to Auth State
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        await fetchUserData(currentUser.uid);
-      } else {
+      if (!currentUser) {
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Listen to User Data (Real-time)
+  useEffect(() => {
+    let unsubscribeSnapshot;
+
+    if (user) {
+      setLoading(true);
+      const userDocRef = doc(db, 'users', user.uid);
+      
+      unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserData(docSnap.data());
+        } else {
+          setUserData(null);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error("Error listening to user data:", error);
+        setLoading(false);
+      });
+    }
+
+    return () => {
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+    };
+  }, [user]);
 
   const logout = async () => {
     await signOut(auth);
   };
 
   const refreshUserData = async () => {
-    if (user) {
-      await fetchUserData(user.uid);
-    }
+    // No-op: Data is automatically updated via onSnapshot
   };
 
   return (

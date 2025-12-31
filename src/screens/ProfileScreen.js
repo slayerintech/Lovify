@@ -74,7 +74,7 @@ export default function ProfileScreen() {
             <View style={styles.profileRow}>
               {/* Profile Picture */}
               <View style={styles.avatarContainer}>
-                <Image source={{ uri: userData.photos[0] }} style={styles.avatar} />
+                <Image source={{ uri: userData.photo || (userData.photos && userData.photos[0]) }} style={styles.avatar} />
                 <View style={styles.onlineIndicator} />
               </View>
 
@@ -138,7 +138,7 @@ export default function ProfileScreen() {
             </LinearGradient>
           </View>
 
-          {/* Stats Section (Kept for completeness but styled to fit new layout) */}
+          {/* Stats Section */}
           <View style={styles.statsContainer}>
             <BlurView intensity={20} tint="dark" style={styles.statCard}>
                <Ionicons name="transgender-outline" size={24} color="#FF2D55" />
@@ -149,13 +149,13 @@ export default function ProfileScreen() {
             <BlurView intensity={20} tint="dark" style={styles.statCard}>
                <Ionicons name="heart-half-outline" size={24} color="#5856D6" />
                <Text style={styles.statValue}>{userData.interestedIn}</Text>
-               <Text style={styles.statLabel}>Interests</Text>
+               <Text style={styles.statLabel}>Interested In</Text>
             </BlurView>
           </View>
 
           {/* Settings & Logout */}
           <View style={styles.actionSection}>
-            <Text style={styles.menuTitle}>Settings</Text>
+            <Text style={styles.menuTitle}>Logout</Text>
             
             <TouchableOpacity onPress={logout} activeOpacity={0.9} style={{ marginBottom: 15 }}>
                <LinearGradient 

@@ -12,8 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
-const GRID_SPACING = 10;
-const PHOTO_SIZE = (width - 60) / 3;
+const PHOTO_SIZE = width * 0.4; // Larger size for single photo
 
 const INTERESTS_LIST = [
   { label: "Music", icon: "musical-notes-outline" },
@@ -67,7 +66,7 @@ export default function EditProfileScreen({ navigation }) {
   const [age, setAge] = useState('');
   const [bio, setBio] = useState('');
   const [job, setJob] = useState('');
-  const [photos, setPhotos] = useState([]);
+  const [photo, setPhoto] = useState(null);
   const [interests, setInterests] = useState([]);
   const [gender, setGender] = useState('');
   const [interestedIn, setInterestedIn] = useState('');
@@ -80,7 +79,7 @@ export default function EditProfileScreen({ navigation }) {
       setAge(userData.age ? userData.age.toString() : '');
       setBio(userData.bio || '');
       setJob(userData.job || '');
-      setPhotos(userData.photos || []);
+      setPhoto(userData.photo || null);
       setInterests(userData.interests || []);
       setGender(userData.gender || '');
       setInterestedIn(userData.interestedIn || '');
@@ -90,7 +89,6 @@ export default function EditProfileScreen({ navigation }) {
   }, [userData]);
 
   const pickImage = async () => {
-    if (photos.length >= 6) { Alert.alert('Limit reached', 'Max 6 photos allowed.'); return; }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -99,13 +97,11 @@ export default function EditProfileScreen({ navigation }) {
       aspect: [3, 4],
       quality: 0.6,
     });
-    if (!result.canceled) setPhotos([...photos, result.assets[0].uri]);
+    if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
-  const removePhoto = (index) => {
-    const newPhotos = [...photos];
-    newPhotos.splice(index, 1);
-    setPhotos(newPhotos);
+  const removePhoto = () => {
+    setPhoto(null);
   };
 
   const toggleInterest = (interest) => {
@@ -113,11 +109,11 @@ export default function EditProfileScreen({ navigation }) {
     else setInterests([...interests, interest]);
   };
 
-  const uploadImage = async (uri, index) => {
+  const uploadImage = async (uri) => {
     if (uri.startsWith('http')) return uri;
     const response = await fetch(uri);
     const blob = await response.blob();
-    const filename = `${user?.uid}/photo_${index}_${Date.now()}.jpg`;
+    const filename = `${user?.uid}/profile_photo_${Date.now()}.jpg`;
     const storageRef = ref(storage, filename);
     await uploadBytes(storageRef, blob);
     return await getDownloadURL(storageRef);
@@ -127,7 +123,7 @@ export default function EditProfileScreen({ navigation }) {
     const missing = [];
     if (!name) missing.push('Name');
     if (!age) missing.push('Age');
-    if (photos.length < 1) missing.push('At least 1 Photo');
+    if (!photo) missing.push('Profile Photo');
     if (!gender) missing.push('Gender (I am a...)');
     if (!interestedIn) missing.push('Interested In');
     if (!lookingFor) missing.push('Looking For');
@@ -141,14 +137,14 @@ export default function EditProfileScreen({ navigation }) {
     
     setLoading(true);
     try {
-      const photoUrls = await Promise.all(photos.map((photo, index) => uploadImage(photo, index)));
+      const photoUrl = await uploadImage(photo);
       const updateData = {
         id: user.uid,
         name,
         age: parseInt(age),
         bio,
         job,
-        photos: photoUrls,
+        photo: photoUrl,
         interests,
         gender,
         interestedIn,
@@ -205,24 +201,23 @@ export default function EditProfileScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Photos Section */}
-          <Text style={styles.sectionTitle}>Profile Photos ({photos.length}/6)</Text>
+          <Text style={styles.sectionTitle}>Profile Photo</Text>
           <View style={styles.photosGrid}>
-            {Array(6).fill(0).map((_, index) => (
-              <TouchableOpacity key={index} style={styles.photoBox} onPress={() => !photos[index] && pickImage()}>
-                {photos[index] ? (
+              <TouchableOpacity style={styles.photoBox} onPress={() => !photo && pickImage()}>
+                {photo ? (
                   <View style={styles.fullSize}>
-                    <Image source={{ uri: photos[index] }} style={styles.photo} />
-                    <TouchableOpacity style={styles.removeBtn} onPress={() => removePhoto(index)}>
-                      <Ionicons name="close-circle" size={20} color="#FF2D55" />
+                    <Image source={{ uri: photo }} style={styles.photo} />
+                    <TouchableOpacity style={styles.removeBtn} onPress={removePhoto}>
+                      <Ionicons name="close-circle" size={24} color="#FF2D55" />
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={styles.addPlaceholder}>
-                    <Ionicons name="add" size={24} color="rgba(255,255,255,0.2)" />
+                    <Ionicons name="add" size={40} color="rgba(255,255,255,0.2)" />
+                    <Text style={styles.addPhotoText}>Add Photo</Text>
                   </View>
                 )}
               </TouchableOpacity>
-            ))}
           </View>
 
           {/* Basic Info Group */}
@@ -353,12 +348,13 @@ const styles = StyleSheet.create({
   sectionTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 25, marginBottom: 10, marginLeft: 5 },
   
   // Photos Grid
-  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_SPACING, justifyContent: 'center' },
-  photoBox: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.3, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  photosGrid: { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
+  photoBox: { width: PHOTO_SIZE, height: PHOTO_SIZE * 1.3, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
   fullSize: { flex: 1 },
   photo: { width: '100%', height: '100%', resizeMode: 'cover' },
   addPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  removeBtn: { position: 'absolute', top: 5, right: 5 },
+  addPhotoText: { color: 'rgba(255,255,255,0.3)', marginTop: 10, fontSize: 14, fontWeight: '600' },
+  removeBtn: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12 },
 
   // Glass Grouping Styles
   glassGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)', paddingVertical: 5 },
