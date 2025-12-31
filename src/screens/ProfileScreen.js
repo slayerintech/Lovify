@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, SafeAreaView, Alert, Dimensions, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Alert, Dimensions, StatusBar, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../services/AuthContext';
 import { GlassButton } from '../components/GlassButton';
 import { AppHeader } from '../components/AppHeader';
+import { PurchaseModal } from '../components/PurchaseModal';
 import { COLORS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import { deleteUser } from 'firebase/auth';
@@ -24,8 +26,59 @@ const PerkItem = ({ icon, text }) => (
 );
 
 export default function ProfileScreen() {
-  const { userData, logout } = useAuth();
+  const { userData, logout, upgradeToPremium, cancelPremium } = useAuth();
   const navigation = useNavigation();
+  const [purchasing, setPurchasing] = React.useState(false);
+  const [cancelling, setCancelling] = React.useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = React.useState(false);
+
+  const handlePurchase = () => {
+    if (userData?.isPremium) {
+      // Logic handled by Remove Subscription button now
+      return;
+    }
+    setShowPurchaseModal(true);
+  };
+
+  const handleCancelSubscription = () => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Are you sure you want to cancel your Lovify Premium subscription? You will lose all exclusive features immediately.',
+      [
+        { text: 'Keep Subscription', style: 'cancel' },
+        { 
+          text: 'Remove Subscription', 
+          style: 'destructive',
+          onPress: async () => {
+            setCancelling(true);
+            try {
+              // Simulate delay
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              await cancelPremium();
+              Alert.alert('Subscription Cancelled', 'Your Premium subscription has been removed.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel subscription. Please try again.');
+            } finally {
+              setCancelling(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const confirmPurchase = async () => {
+    setPurchasing(true);
+    try {
+        await upgradeToPremium();
+        setShowPurchaseModal(false);
+        Alert.alert('Success', 'Welcome to Lovify Premium!');
+    } catch (error) {
+        Alert.alert('Error', 'Purchase failed. Please try again.');
+    } finally {
+        setPurchasing(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     Alert.alert(
@@ -125,14 +178,24 @@ export default function ProfileScreen() {
                 <PerkItem icon="star" text="5 Super Likes a day" />
               </View>
 
-              <TouchableOpacity activeOpacity={0.9}>
+              <TouchableOpacity 
+                key={userData?.isPremium ? 'premium-btn' : 'upgrade-btn'}
+                activeOpacity={0.9} 
+                onPress={userData?.isPremium ? handleCancelSubscription : handlePurchase} 
+                disabled={purchasing || cancelling}
+                style={{ width: '100%' }}
+              >
                 <LinearGradient
-                  colors={['#FF2D55', '#FFA500']}
+                  colors={userData?.isPremium ? ['#3a3a3c', '#2c2c2e'] : ['#FF2D55', '#FFA500']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={styles.upgradeButton}
+                  style={[styles.upgradeButton, userData?.isPremium && { borderWidth: 1, borderColor: '#FF453A' }]}
                 >
-                  <Text style={styles.upgradeButtonText}>UPGRADE NOW</Text>
+                  <Text style={[styles.upgradeButtonText, userData?.isPremium && { color: '#FF453A' }]}>
+                    {purchasing ? 'PROCESSING...' : 
+                     cancelling ? 'REMOVING...' : 
+                     (userData?.isPremium ? 'REMOVE SUBSCRIPTION' : 'UPGRADE NOW')}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>
@@ -185,6 +248,13 @@ export default function ProfileScreen() {
         </ScrollView>
         <AppHeader style={styles.header} />
       {/* </SafeAreaView> */}
+
+      <PurchaseModal 
+        visible={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        onPurchase={confirmPurchase}
+        processing={purchasing}
+      />
     </View>
   );
 }
@@ -334,9 +404,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   upgradeButton: {
+    width: '100%',
     borderRadius: 30,
     paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   upgradeButtonText: {
     color: '#000',

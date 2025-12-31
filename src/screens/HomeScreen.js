@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ActivityIndicator, Animated, TouchableOpacity, Easing, Platform, StatusBar, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity, Easing, Platform, StatusBar, ScrollView, Dimensions, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur'; 
 import { LinearGradient } from 'expo-linear-gradient'; 
@@ -8,6 +9,7 @@ import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import { TinderCard } from '../components/TinderCard';
 import { MatchModal } from '../components/MatchModal';
+import { PurchaseModal } from '../components/PurchaseModal';
 import { AppHeader } from '../components/AppHeader';
 import { GlassChip } from '../components/GlassChip';
 import { INTERESTS_LIST } from '../data/constants';
@@ -29,13 +31,38 @@ const THEME = {
 };
 
 export default function HomeScreen() {
-  const { user, userData } = useAuth();
+  const { user, userData, upgradeToPremium } = useAuth();
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [matchModalVisible, setMatchModalVisible] = useState(false);
   const [lastMatch, setLastMatch] = useState(null);
+  const [purchasing, setPurchasing] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const navigation = useNavigation();
   const topCardRef = useRef(null);
+
+  const handlePurchase = () => {
+    if (userData?.isPremium) {
+        Alert.alert('Already Premium', 'You are already a Lovify Premium member!');
+        return;
+    }
+    setShowPurchaseModal(true);
+  };
+
+  const confirmPurchase = async () => {
+    setPurchasing(true);
+    try {
+        // Simulate a delay for the "Purchase" process
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await upgradeToPremium();
+        setShowPurchaseModal(false);
+        Alert.alert('Success', 'Welcome to Lovify Premium!');
+    } catch (error) {
+        Alert.alert('Error', 'Purchase failed. Please try again.');
+    } finally {
+        setPurchasing(false);
+    }
+  };
 
   // Get current top profile for details view
   const currentProfile = profiles.length > 0 ? profiles[profiles.length - 1] : null;
@@ -170,15 +197,18 @@ export default function HomeScreen() {
                 <Text style={styles.subText}>Upgrade to Premium to see more people and get unlimited swipes.</Text>
                 <TouchableOpacity 
                   activeOpacity={0.9}
-                  onPress={() => { /* Navigate to Premium Screen or show modal */ }}
+                  onPress={handlePurchase}
+                  disabled={purchasing}
                 >
                   <LinearGradient
-                    colors={['#FF2D55', '#FFA500']}
+                    colors={userData?.isPremium ? ['#32D74B', '#28A745'] : ['#FF2D55', '#FFA500']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.upgradeButton}
                   >
-                     <Text style={styles.upgradeButtonText}>UPGRADE TO PRO</Text>
+                     <Text style={styles.upgradeButtonText}>
+                       {purchasing ? 'PROCESSING...' : (userData?.isPremium ? 'PREMIUM ACTIVE' : 'UPGRADE TO PRO')}
+                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -296,6 +326,13 @@ export default function HomeScreen() {
           setMatchModalVisible(false);
           navigation.navigate('Conversation', { matchId: lastMatch.matchId, user: lastMatch });
         }}
+      />
+
+      <PurchaseModal 
+        visible={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        onPurchase={confirmPurchase}
+        processing={purchasing}
       />
     </View>
   );

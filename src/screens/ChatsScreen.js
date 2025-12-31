@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, StatusBar, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, StatusBar, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
@@ -123,7 +124,7 @@ export default function ChatsScreen() {
       
       <SafeAreaView style={styles.safeArea}>
         
-        <ScrollView contentContainerStyle={{ paddingTop: 100 }}>
+        <ScrollView contentContainerStyle={{ paddingTop: 60 }}>
           {matches.length > 0 && renderNewMatches()}
 
           <FlatList

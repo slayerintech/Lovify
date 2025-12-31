@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, SafeAreaView, Dimensions, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
@@ -76,7 +77,7 @@ export default function MatchesScreen() {
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
-          contentContainerStyle={[styles.list, { paddingTop: 110 }]}
+          contentContainerStyle={[styles.list, { paddingTop: 60 }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<Text style={styles.sectionTitle}>Your Matches</Text>}
           ListEmptyComponent={
