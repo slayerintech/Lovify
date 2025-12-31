@@ -135,12 +135,10 @@ export default function HomeScreen() {
       <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        {/* Tinder-like Header */}
-        <AppHeader onPress={() => fetchProfiles()} />
         
         <ScrollView 
           style={styles.scrollView} 
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: 70 }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.cardsContainer}>
@@ -171,12 +169,17 @@ export default function HomeScreen() {
                 <Text style={styles.noMoreText}>You've seen everyone!</Text>
                 <Text style={styles.subText}>Upgrade to Premium to see more people and get unlimited swipes.</Text>
                 <TouchableOpacity 
-                  style={styles.resetButton}
+                  activeOpacity={0.9}
                   onPress={() => { /* Navigate to Premium Screen or show modal */ }}
                 >
-                  <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
-                     <Text style={styles.resetButtonText}>Upgrade to Pro</Text>
-                  </BlurView>
+                  <LinearGradient
+                    colors={['#FF2D55', '#FFA500']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.upgradeButton}
+                  >
+                     <Text style={styles.upgradeButtonText}>UPGRADE TO PRO</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             )}
@@ -193,7 +196,11 @@ export default function HomeScreen() {
               {currentProfile.bio ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>About Me</Text>
-                  <Text style={styles.bioText}>{currentProfile.bio}</Text>
+                  <View style={styles.resetButton}>
+                    <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
+                      <Text style={[styles.resetButtonText, { lineHeight: 24, textTransform: 'none' }]}>{currentProfile.bio}</Text>
+                    </BlurView>
+                  </View>
                 </View>
               ) : null}
 
@@ -201,10 +208,14 @@ export default function HomeScreen() {
               {currentProfile.lookingFor ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Looking For</Text>
-                  <View style={styles.chipContainer}>
-                    <View style={styles.chip}>
-                      <Ionicons name="search-outline" size={16} color={THEME.accent} style={{ marginRight: 6 }} />
-                      <Text style={styles.chipText}>{currentProfile.lookingFor}</Text>
+                  <View style={styles.interestsContainer}>
+                    <View style={styles.resetButton}>
+                      <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
+                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                           <Ionicons name="search-outline" size={16} color={THEME.text} style={{ marginRight: 8 }} />
+                           <Text style={styles.resetButtonText}>{currentProfile.lookingFor}</Text>
+                         </View>
+                      </BlurView>
                     </View>
                   </View>
                 </View>
@@ -237,10 +248,14 @@ export default function HomeScreen() {
               {currentProfile.religion ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Religion</Text>
-                  <View style={styles.chipContainer}>
-                    <View style={styles.chip}>
-                      <Ionicons name="book-outline" size={16} color={THEME.accent} style={{ marginRight: 6 }} />
-                      <Text style={styles.chipText}>{currentProfile.religion}</Text>
+                  <View style={styles.interestsContainer}>
+                    <View style={styles.resetButton}>
+                      <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
+                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                           <Ionicons name="book-outline" size={16} color={THEME.text} style={{ marginRight: 8 }} />
+                           <Text style={styles.resetButtonText}>{currentProfile.religion}</Text>
+                         </View>
+                      </BlurView>
                     </View>
                   </View>
                 </View>
@@ -250,11 +265,14 @@ export default function HomeScreen() {
               {currentProfile.gender ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Details</Text>
-                  <View style={styles.detailItems}>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="person-outline" size={20} color={THEME.secondaryText} />
-                      <Text style={styles.detailText}>{currentProfile.gender}</Text>
-                    </View>
+                  <View style={styles.interestsContainer}>
+                    <GlassChip 
+                      label={currentProfile.gender}
+                      icon={currentProfile.gender.toLowerCase() === 'male' ? 'male-outline' : currentProfile.gender.toLowerCase() === 'female' ? 'female-outline' : 'person-outline'}
+                      selected={true}
+                      onPress={() => {}}
+                      style={{ width: ITEM_WIDTH, marginRight: 0, marginBottom: 0 }}
+                    />
                   </View>
                 </View>
               ) : null}
@@ -264,6 +282,9 @@ export default function HomeScreen() {
           {/* Spacer for bottom scrolling */}
           <View style={{ height: 100 }} />
         </ScrollView>
+
+        {/* Tinder-like Header */}
+        <AppHeader onPress={() => fetchProfiles()} style={styles.header} />
       </SafeAreaView>
 
       <MatchModal
@@ -273,7 +294,7 @@ export default function HomeScreen() {
         onClose={() => setMatchModalVisible(false)}
         onChat={() => {
           setMatchModalVisible(false);
-          navigation.navigate('Chat', { matchId: lastMatch.matchId, user: lastMatch });
+          navigation.navigate('Conversation', { matchId: lastMatch.matchId, user: lastMatch });
         }}
       />
     </View>
@@ -293,6 +314,13 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
   },
   cardsContainer: {
     height: height * 0.75,
@@ -430,5 +458,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     textTransform: 'uppercase',
+  },
+  upgradeButton: {
+    borderRadius: 30,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

@@ -191,7 +191,7 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
       <Animated.View style={[styles.card, animatedStyle, borderStyle]}>
         {/* Full Screen Image */}
         <Image 
-          source={typeof user.photos[0] === 'number' ? user.photos[0] : { uri: user.photos[0] }} 
+          source={user.imageId && LOCAL_IMAGES[user.imageId] ? LOCAL_IMAGES[user.imageId] : (typeof user.photos[0] === 'number' ? user.photos[0] : { uri: user.photos[0] })} 
           style={styles.image} 
           fadeDuration={0} // Disable fade animation for snappier loading
         />

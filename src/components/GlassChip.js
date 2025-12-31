@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 
-export const GlassChip = ({ label, icon, selected, onPress, style }) => {
+export const GlassChip = ({ label, icon, selected, onPress, style, gradientColors = ['#FF2D55', '#FF6B8B'] }) => {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [
       styles.container,
@@ -14,7 +14,7 @@ export const GlassChip = ({ label, icon, selected, onPress, style }) => {
     ]}>
       {selected ? (
         <LinearGradient
-          colors={['#FF2D55', '#FF6B8B']} // Updated to match app theme (pink/red)
+          colors={gradientColors} // Updated to match app theme (pink/red)
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}

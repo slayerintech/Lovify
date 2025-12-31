@@ -5,7 +5,9 @@ import { GlassButton } from '../components/GlassButton';
 import { AppHeader } from '../components/AppHeader';
 import { COLORS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
-import { seedUsers } from '../utils/seeder';
+import { deleteUser } from 'firebase/auth';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { auth, db } from '../services/firebase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,25 +27,35 @@ export default function ProfileScreen() {
   const { userData, logout } = useAuth();
   const navigation = useNavigation();
 
-  const handleSeed = async () => {
-    try {
-      Alert.alert(
-        'Dev Mode: Add Data',
-        'Insert 20 virtual profiles?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Insert', 
-            onPress: async () => {
-              await seedUsers();
-              Alert.alert('Success', 'Universe populated with 20 profiles!');
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const user = auth.currentUser;
+              if (user) {
+                // Delete user data from Firestore
+                await deleteDoc(doc(db, 'users', user.uid));
+                
+                // Delete user from Authentication
+                await deleteUser(user);
+                
+                // Navigation to login will happen automatically due to auth state change
+              }
+            } catch (error) {
+              console.error('Error deleting account:', error);
+              Alert.alert('Error', 'Failed to delete account. You may need to re-login and try again.');
             }
           }
-        ]
-      );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to seed data');
-    }
+        }
+      ]
+    );
   };
 
   if (!userData) return null;
@@ -53,8 +65,8 @@ export default function ProfileScreen() {
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={['#000000', '#121212']} style={StyleSheet.absoluteFill} />
       
-      <SafeAreaView style={styles.safeArea}>
-        <AppHeader />
+      {/* <SafeAreaView style={styles.safeArea}> */}
+        
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           
           {/* New Horizontal Profile Header */}
@@ -145,22 +157,34 @@ export default function ProfileScreen() {
           <View style={styles.actionSection}>
             <Text style={styles.menuTitle}>Settings</Text>
             
-            <GlassButton 
-              title="Populate Profiles (Dev)" 
-              onPress={handleSeed} 
-              style={[styles.button, styles.devButton]}
-            />
+            <TouchableOpacity onPress={logout} activeOpacity={0.9} style={{ marginBottom: 15 }}>
+               <LinearGradient 
+                  colors={['#2c2c2e', '#3a3a3c']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.upgradeButton, { flexDirection: 'row', gap: 10, justifyContent: 'center' }]}
+               >
+                  <Ionicons name="log-out-outline" size={22} color="#fff" />
+                  <Text style={[styles.upgradeButtonText, { color: '#fff' }]}>LOGOUT</Text>
+               </LinearGradient>
+            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.logoutRow} onPress={logout}>
-               <LinearGradient colors={['rgba(255, 45, 85, 0.1)', 'transparent']} style={styles.logoutGradient}>
-                  <Ionicons name="log-out-outline" size={22} color="#FF453A" />
-                  <Text style={styles.logoutText}>Logout</Text>
+            <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.9}>
+               <LinearGradient 
+                  colors={['#FF3B30', '#FF0000']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.upgradeButton, { flexDirection: 'row', gap: 10, justifyContent: 'center' }]}
+               >
+                  <Ionicons name="trash-outline" size={22} color="#fff" />
+                  <Text style={[styles.upgradeButtonText, { color: '#fff' }]}>DELETE ACCOUNT</Text>
                </LinearGradient>
             </TouchableOpacity>
           </View>
 
         </ScrollView>
-      </SafeAreaView>
+        <AppHeader style={styles.header} />
+      {/* </SafeAreaView> */}
     </View>
   );
 }
@@ -174,7 +198,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 120,
+    paddingBottom: 80,
+    paddingTop: 80,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
   },
   // Profile Section Styles
   profileSection: {

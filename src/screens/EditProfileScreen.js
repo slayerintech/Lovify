@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch, Image, Dimensions, SafeAreaView, StatusBar, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Image, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
-import { GlassBottomSheet } from '../components/GlassBottomSheet';
-import { GlassButton } from '../components/GlassButton';
 import { GlassInput } from '../components/GlassInput';
 import { GlassChip } from '../components/GlassChip';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '../services/firebase';
-import * as ImagePicker from 'expo-image-picker';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 const GRID_SPACING = 10;
@@ -28,7 +26,7 @@ const INTERESTS_LIST = [
   { label: "Club", icon: "beer-outline" },
   { label: "Anime", icon: "tv-outline" },
   { label: "Beaches", icon: "water-outline" },
-  { label: "Mountain", icon: "trail-sign-outline" },
+  { label: "Mountais", icon: "trail-sign-outline" },
   { label: "Reading", icon: "book-outline" }
 ];
 
@@ -61,7 +59,7 @@ const RELIGION_OPTIONS = [
 ];
 
 export default function EditProfileScreen({ navigation }) {
-  const { userData, refreshUserData, user } = useAuth();
+  const { user, userData, refreshUserData } = useAuth();
   const [loading, setLoading] = useState(false);
 
   // Form State
@@ -75,10 +73,6 @@ export default function EditProfileScreen({ navigation }) {
   const [interestedIn, setInterestedIn] = useState('');
   const [lookingFor, setLookingFor] = useState('');
   const [religion, setReligion] = useState('');
-  const [maxDistance, setMaxDistance] = useState('50');
-  const [ageRange, setAgeRange] = useState({ min: '18', max: '35' });
-  const [showAge, setShowAge] = useState(true);
-  const [showDistance, setShowDistance] = useState(true);
 
   useEffect(() => {
     if (userData) {
@@ -92,10 +86,6 @@ export default function EditProfileScreen({ navigation }) {
       setInterestedIn(userData.interestedIn || '');
       setLookingFor(userData.lookingFor || '');
       setReligion(userData.religion || '');
-      setMaxDistance(userData.maxDistance ? userData.maxDistance.toString() : '50');
-      setAgeRange(userData.ageRange || { min: '18', max: '35' });
-      setShowAge(userData.showAge !== false);
-      setShowDistance(userData.showDistance !== false);
     }
   }, [userData]);
 
@@ -134,19 +124,44 @@ export default function EditProfileScreen({ navigation }) {
   };
 
   const handleSave = async () => {
-    if (!name || !age || photos.length === 0) {
-      Alert.alert('Error', 'Name, Age and at least 1 photo are required.');
+    const missing = [];
+    if (!name) missing.push('Name');
+    if (!age) missing.push('Age');
+    if (photos.length < 1) missing.push('At least 1 Photo');
+    if (!gender) missing.push('Gender (I am a...)');
+    if (!interestedIn) missing.push('Interested In');
+    if (!lookingFor) missing.push('Looking For');
+    if (!religion) missing.push('Religion');
+    if (interests.length === 0) missing.push('At least 1 Interest');
+
+    if (missing.length > 0) {
+      Alert.alert('Incomplete Profile', 'Please complete the following sections:\n\n' + missing.join('\n'));
       return;
     }
+    
     setLoading(true);
     try {
       const photoUrls = await Promise.all(photos.map((photo, index) => uploadImage(photo, index)));
-      const updateData = { name, age: parseInt(age), bio, job, photos: photoUrls, interests, gender, interestedIn, lookingFor, religion, maxDistance: parseInt(maxDistance), ageRange, showAge, showDistance };
-      await updateDoc(doc(db, 'users', user.uid), updateData);
+      const updateData = {
+        id: user.uid,
+        name,
+        age: parseInt(age),
+        bio,
+        job,
+        photos: photoUrls,
+        interests,
+        gender,
+        interestedIn,
+        lookingFor,
+        religion,
+        updatedAt: serverTimestamp(),
+        ...(userData ? {} : { createdAt: serverTimestamp() }),
+      };
+      await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
       await refreshUserData();
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Update failed.');
+      Alert.alert('Error', 'Update failed: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -175,163 +190,166 @@ export default function EditProfileScreen({ navigation }) {
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={['#1a080e', '#000000']} style={StyleSheet.absoluteFill} />
       
-      <SafeAreaView style={styles.safeArea}>
-        {/* Transparent Header */}
-        <BlurView intensity={20} tint="dark" style={styles.headerBlur}>
-          <View style={styles.header}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                  <Ionicons name="close" size={28} color="#fff" />
+      {/* Absolute Header matching AppHeader style */}
+      <BlurView intensity={30} tint="dark" style={styles.headerContainer}>
+        <View style={styles.headerContent}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Edit Profile</Text>
+            <TouchableOpacity onPress={handleSave} disabled={loading}>
+                {loading ? <ActivityIndicator size="small" color="#FF2D55" /> : <Text style={styles.saveText}>Save</Text>}
+            </TouchableOpacity>
+        </View>
+      </BlurView>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Photos Section */}
+          <Text style={styles.sectionTitle}>Profile Photos ({photos.length}/6)</Text>
+          <View style={styles.photosGrid}>
+            {Array(6).fill(0).map((_, index) => (
+              <TouchableOpacity key={index} style={styles.photoBox} onPress={() => !photos[index] && pickImage()}>
+                {photos[index] ? (
+                  <View style={styles.fullSize}>
+                    <Image source={{ uri: photos[index] }} style={styles.photo} />
+                    <TouchableOpacity style={styles.removeBtn} onPress={() => removePhoto(index)}>
+                      <Ionicons name="close-circle" size={20} color="#FF2D55" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.addPlaceholder}>
+                    <Ionicons name="add" size={24} color="rgba(255,255,255,0.2)" />
+                  </View>
+                )}
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Edit Profile</Text>
-              <TouchableOpacity onPress={handleSave} disabled={loading}>
-                  {loading ? <ActivityIndicator size="small" color="#FF2D55" /> : <Text style={styles.saveText}>Save</Text>}
-              </TouchableOpacity>
+            ))}
           </View>
-        </BlurView>
 
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Photos Section */}
-            <Text style={styles.sectionTitle}>Profile Photos ({photos.length}/6)</Text>
-            <View style={styles.photosGrid}>
-              {Array(6).fill(0).map((_, index) => (
-                <TouchableOpacity key={index} style={styles.photoBox} onPress={() => !photos[index] && pickImage()}>
-                  {photos[index] ? (
-                    <View style={styles.fullSize}>
-                      <Image source={{ uri: photos[index] }} style={styles.photo} />
-                      <TouchableOpacity style={styles.removeBtn} onPress={() => removePhoto(index)}>
-                        <Ionicons name="close-circle" size={20} color="#FF2D55" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.addPlaceholder}>
-                      <Ionicons name="add" size={24} color="rgba(255,255,255,0.2)" />
-                    </View>
-                  )}
-                </TouchableOpacity>
+          {/* Basic Info Group */}
+          <Text style={styles.sectionTitle}>Basic Info</Text>
+          <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
+              <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Name</Text>
+                  <GlassInput 
+                      value={name} 
+                      onChangeText={setName} 
+                      containerStyle={styles.rowInput} 
+                      style={styles.alignRight} 
+                      placeholder="Enter Name" 
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                  />
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Job Title</Text>
+                  <GlassInput 
+                      value={job} 
+                      onChangeText={setJob} 
+                      containerStyle={styles.rowInput} 
+                      style={styles.alignRight} 
+                      placeholder="Enter Job" 
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                  />
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.row}>
+                  <Text style={styles.rowLabel}>Age</Text>
+                  <GlassInput 
+                      value={age} 
+                      onChangeText={setAge} 
+                      keyboardType="numeric" 
+                      containerStyle={styles.rowInput} 
+                      style={styles.alignRight} 
+                      placeholder="Age" 
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                  />
+              </View>
+          </BlurView>
+
+          {/* Bio Section */}
+          <Text style={styles.sectionTitle}>About Me</Text>
+          <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
+              <GlassInput 
+                  placeholder="Tell them About your self" 
+                  value={bio} 
+                  onChangeText={setBio} 
+                  multiline 
+                  containerStyle={{borderWidth: 0, backgroundColor: 'transparent'}}
+                  style={styles.bioInput} 
+              />
+          </BlurView>
+
+          {/* Gender Section */}
+          <Text style={styles.sectionTitle}>I am a</Text>
+          <View style={styles.gridContainer}>
+            {GENDER_OPTIONS.map(opt => renderGridOption(opt, gender, setGender))}
+          </View>
+
+          {/* Interested In Section */}
+          <Text style={styles.sectionTitle}>Interested In</Text>
+          <View style={styles.gridContainer}>
+            {INTERESTED_IN_OPTIONS.map(opt => renderGridOption(opt, interestedIn, setInterestedIn))}
+          </View>
+
+          {/* Looking For Section */}
+          <Text style={styles.sectionTitle}>Looking For</Text>
+          <View style={styles.gridContainer}>
+            {LOOKING_FOR_OPTIONS.map(opt => renderGridOption(opt, lookingFor, setLookingFor))}
+          </View>
+
+          {/* Religion Section */}
+          <Text style={styles.sectionTitle}>Religion</Text>
+          <View style={styles.gridContainer}>
+            {RELIGION_OPTIONS.map(opt => renderGridOption(opt, religion, setReligion))}
+          </View>
+
+          {/* Interests Section */}
+          <Text style={styles.sectionTitle}>Interests</Text>
+          <View style={styles.interestsContainer}>
+              {INTERESTS_LIST.map((item) => (
+                  <GlassChip 
+                    key={item.label} 
+                    label={item.label} 
+                    icon={item.icon}
+                    selected={interests.includes(item.label)} 
+                    onPress={() => toggleInterest(item.label)} 
+                    style={{ width: '48%', marginRight: 0, marginBottom: 0 }}
+                  />
               ))}
-            </View>
+          </View>
 
-            {/* Basic Info Group */}
-            <Text style={styles.sectionTitle}>Basic Info</Text>
-            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
-                <View style={styles.row}>
-                    <Text style={styles.rowLabel}>Name</Text>
-                    <GlassInput value={name} onChangeText={setName} containerStyle={styles.rowInput} style={styles.alignRight} />
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.row}>
-                    <Text style={styles.rowLabel}>Job Title</Text>
-                    <GlassInput value={job} onChangeText={setJob} containerStyle={styles.rowInput} style={styles.alignRight} />
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.row}>
-                    <Text style={styles.rowLabel}>Age</Text>
-                    <GlassInput value={age} onChangeText={setAge} keyboardType="numeric" containerStyle={styles.rowInput} style={styles.alignRight} />
-                </View>
-            </BlurView>
-
-            {/* Bio Section */}
-            <Text style={styles.sectionTitle}>About Me</Text>
-            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
-                <GlassInput 
-                    placeholder="Tell them your story..." 
-                    value={bio} 
-                    onChangeText={setBio} 
-                    multiline 
-                    containerStyle={{borderWidth: 0, backgroundColor: 'transparent'}}
-                    style={styles.bioInput} 
-                />
-            </BlurView>
-
-            {/* Gender Section */}
-            <Text style={styles.sectionTitle}>I am a</Text>
-            <View style={styles.gridContainer}>
-              {GENDER_OPTIONS.map(opt => renderGridOption(opt, gender, setGender))}
-            </View>
-
-            {/* Interested In Section */}
-            <Text style={styles.sectionTitle}>Interested In</Text>
-            <View style={styles.gridContainer}>
-              {INTERESTED_IN_OPTIONS.map(opt => renderGridOption(opt, interestedIn, setInterestedIn))}
-            </View>
-
-            {/* Looking For Section */}
-            <Text style={styles.sectionTitle}>Looking For</Text>
-            <View style={styles.gridContainer}>
-              {LOOKING_FOR_OPTIONS.map(opt => renderGridOption(opt, lookingFor, setLookingFor))}
-            </View>
-
-            {/* Religion Section */}
-            <Text style={styles.sectionTitle}>Religion</Text>
-            <View style={styles.gridContainer}>
-              {RELIGION_OPTIONS.map(opt => renderGridOption(opt, religion, setReligion))}
-            </View>
-
-            {/* Discovery Settings */}
-            <Text style={styles.sectionTitle}>Discovery Settings</Text>
-            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
-                <View style={styles.clickableRow}>
-                    <Text style={styles.rowLabel}>Max Distance</Text>
-                    <View style={styles.valRow}>
-                        <GlassInput value={maxDistance} onChangeText={setMaxDistance} keyboardType="numeric" containerStyle={styles.inlineValueInput} style={styles.alignRight} />
-                        <Text style={styles.unitText}>km</Text>
-                    </View>
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.clickableRow}>
-                    <Text style={styles.rowLabel}>Age Range</Text>
-                    <View style={styles.valRow}>
-                        <GlassInput value={ageRange.min} onChangeText={(t) => setAgeRange({...ageRange, min: t})} keyboardType="numeric" containerStyle={styles.miniInput} style={styles.centerText} />
-                        <Text style={styles.unitText}>-</Text>
-                        <GlassInput value={ageRange.max} onChangeText={(t) => setAgeRange({...ageRange, max: t})} keyboardType="numeric" containerStyle={styles.miniInput} style={styles.centerText} />
-                    </View>
-                </View>
-            </BlurView>
-
-            {/* Interests Section */}
-            <Text style={styles.sectionTitle}>Interests</Text>
-            <View style={styles.interestsContainer}>
-                {INTERESTS_LIST.map((item) => (
-                    <GlassChip 
-                      key={item.label} 
-                      label={item.label} 
-                      icon={item.icon}
-                      selected={interests.includes(item.label)} 
-                      onPress={() => toggleInterest(item.label)} 
-                      style={{ width: '30%', marginRight: 0, marginBottom: 0 }}
-                    />
-                ))}
-            </View>
-
-            {/* App Settings */}
-            <Text style={styles.sectionTitle}>App Experience</Text>
-            <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
-                <View style={styles.clickableRow}>
-                    <Text style={styles.rowLabel}>Show My Age</Text>
-                    <Switch value={showAge} onValueChange={setShowAge} trackColor={{ false: '#333', true: '#FF2D55' }} thumbColor="#fff" />
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.clickableRow}>
-                    <Text style={styles.rowLabel}>Show My Distance</Text>
-                    <Switch value={showDistance} onValueChange={setShowDistance} trackColor={{ false: '#333', true: '#FF2D55' }} thumbColor="#fff" />
-                </View>
-            </BlurView>
-
-            <View style={{ height: 100 }} />
-        </ScrollView>
-      </SafeAreaView>
+          <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  safeArea: { flex: 1 },
-  headerBlur: { borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, height: 60 },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingTop: Platform.OS === 'android' ? 40 : 50, // Adjusted for status bar
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   saveText: { color: '#FF2D55', fontSize: 17, fontWeight: '800' },
-  content: { paddingHorizontal: 20 },
+  scrollContent: { 
+    paddingHorizontal: 20,
+    paddingTop: 110, // Push content down below header
+    paddingBottom: 40,
+  },
   sectionTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 25, marginBottom: 10, marginLeft: 5 },
   
   // Photos Grid
@@ -345,22 +363,12 @@ const styles = StyleSheet.create({
   // Glass Grouping Styles
   glassGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)', paddingVertical: 5 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 50 },
-  clickableRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 55 },
   rowLabel: { color: '#fff', fontSize: 16, fontWeight: '500' },
-  rowInput: { flex: 1, backgroundColor: 'transparent', borderWidth: 0, height: 40 },
-  alignRight: { textAlign: 'right', color: '#FF2D55', fontWeight: '700' },
+  rowInput: { flex: 1, backgroundColor: 'transparent', borderWidth: 0, height: '100%', justifyContent: 'center' },
+  alignRight: { textAlign: 'right', color: '#FF2D55', fontWeight: '700', paddingBottom: 0 ,paddingRight: 15 },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 15 },
-  valRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  rowVal: { color: '#FF2D55', fontSize: 16, fontWeight: '700' },
   bioInput: { height: 80, textAlignVertical: 'top', color: '#fff', paddingHorizontal: 15, paddingTop: 10 },
   
-  // Discovery Styles
-  inlineValueInput: { width: 50, borderWidth: 0, backgroundColor: 'transparent' },
-  miniInput: { width: 35, borderWidth: 0, backgroundColor: 'transparent' },
-  unitText: { color: 'rgba(255,255,255,0.4)', fontWeight: '600' },
-  centerText: { textAlign: 'center', color: '#FF2D55', fontWeight: '700' },
-  chipsScroll: { flexDirection: 'row' },
-
   // Grid Styles
   gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   gridOption: { width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

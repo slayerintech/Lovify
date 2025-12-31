@@ -44,7 +44,7 @@ export default function MatchesScreen() {
     <TouchableOpacity 
       activeOpacity={0.8}
       style={styles.cardWrapper}
-      onPress={() => navigation.navigate('Chat', { matchId: item.id, user: item.otherUser })}
+      onPress={() => navigation.navigate('Conversation', { matchId: item.id, user: item.otherUser })}
     >
       <View style={styles.glassCard}>
         <Image source={{ uri: item.otherUser.photos[0] }} style={styles.cardImage} />
@@ -70,14 +70,13 @@ export default function MatchesScreen() {
       <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        <AppHeader />
-
+        
         <FlatList
           data={matches}
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingTop: 110 }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<Text style={styles.sectionTitle}>Your Matches</Text>}
           ListEmptyComponent={
@@ -90,6 +89,7 @@ export default function MatchesScreen() {
             </View>
           }
         />
+        <AppHeader style={styles.header} />
       </SafeAreaView>
     </View>
   );
@@ -99,6 +99,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
   },
   safeArea: {
     flex: 1,

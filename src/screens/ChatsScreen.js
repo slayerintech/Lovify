@@ -35,26 +35,65 @@ export default function ChatsScreen() {
       <Text style={styles.sectionTitle}>New Matches</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
         {matches.map((item) => (
-          <TouchableOpacity 
+          <View 
             key={item.id} 
             style={styles.newMatchCircle}
-            onPress={() => navigation.navigate('Chat', { matchId: item.id, user: item.otherUser })}
           >
             <LinearGradient colors={['#FF2D55', '#FF375F']} style={styles.avatarGlow}>
               <Image source={{ uri: item.otherUser.photos[0] }} style={styles.smallAvatar} />
             </LinearGradient>
             <Text style={styles.matchName} numberOfLines={1}>{item.otherUser.name}</Text>
-          </TouchableOpacity>
+          </View>
         ))}
       </ScrollView>
     </View>
   );
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      activeOpacity={0.7}
+  // Lovify System User
+  const lovifyUser = {
+    id: 'lovify_system',
+    name: 'Lovify Team',
+    photos: ['https://firebasestorage.googleapis.com/v0/b/lovify-2fa76.appspot.com/o/assets%2Flogo.png?alt=media'], // Placeholder for local logo logic
+    isSystem: true
+  };
+
+  const renderItem = ({ item }) => {
+    // Check if it's the Lovify system message
+    if (item.id === 'lovify_system') {
+      return (
+        <View 
+          style={styles.chatCardWrapper}
+        >
+          <BlurView intensity={10} tint="dark" style={styles.chatCard}>
+            <View style={styles.avatarContainer}>
+              <LinearGradient colors={['#FF2D55', '#FF375F']} style={[styles.avatar, styles.systemAvatarContainer]}>
+                 <Ionicons name="heart" size={32} color="white" />
+              </LinearGradient>
+              <View style={[styles.onlineStatus, { backgroundColor: '#FFD700' }]} />
+            </View>
+            
+            <View style={styles.info}>
+              <View style={styles.nameRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.name}>Lovify Team</Text>
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={14} color="#FF2D55" />
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.preview} numberOfLines={1}>
+                Upgrade to Pro premium to appear to more...
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.2)" />
+          </BlurView>
+        </View>
+      );
+    }
+
+    return (
+    <View 
       style={styles.chatCardWrapper}
-      onPress={() => navigation.navigate('Chat', { matchId: item.id, user: item.otherUser })}
     >
       <BlurView intensity={10} tint="dark" style={styles.chatCard}>
         <View style={styles.avatarContainer}>
@@ -73,8 +112,9 @@ export default function ChatsScreen() {
         </View>
         <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.2)" />
       </BlurView>
-    </TouchableOpacity>
-  );
+    </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -82,26 +122,29 @@ export default function ChatsScreen() {
       <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        <AppHeader />
+        
+        <ScrollView contentContainerStyle={{ paddingTop: 100 }}>
+          {matches.length > 0 && renderNewMatches()}
 
-        {matches.length > 0 && renderNewMatches()}
-
-        <FlatList
-          data={matches}
-          renderItem={renderItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={<Text style={styles.sectionTitle}>Recent Chats</Text>}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <View style={styles.emptyIconBg}>
-                <Ionicons name="chatbubbles-outline" size={50} color="#FF2D55" />
+          <FlatList
+            data={[lovifyUser, ...matches]}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.list}
+            scrollEnabled={false} // Since we wrapped it in ScrollView
+            ListHeaderComponent={<Text style={styles.sectionTitle}>Recent Chats</Text>}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <View style={styles.emptyIconBg}>
+                  <Ionicons name="chatbubbles-outline" size={50} color="#FF2D55" />
+                </View>
+                <Text style={styles.emptyText}>No messages yet</Text>
+                <Text style={styles.emptySubText}>Start swiping to find someone to talk to!</Text>
               </View>
-              <Text style={styles.emptyText}>No messages yet</Text>
-              <Text style={styles.emptySubText}>Start swiping to find someone to talk to!</Text>
-            </View>
-          }
-        />
+            }
+          />
+        </ScrollView>
+        <AppHeader style={styles.header} />
       </SafeAreaView>
     </View>
   );
@@ -111,6 +154,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
   },
   safeArea: {
     flex: 1,
@@ -155,7 +205,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   list: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 10,
     paddingBottom: 100,
     flexGrow: 1,
@@ -170,7 +220,7 @@ const styles = StyleSheet.create({
   chatCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    padding: 10,
   },
   avatarContainer: {
     position: 'relative',
@@ -194,6 +244,14 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  systemAvatarContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verifiedBadge: {
+    marginLeft: 2,
     justifyContent: 'center',
   },
   nameRow: {
