@@ -3,7 +3,6 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import RevenueCatService from './revenueCat';
-import Purchases from 'react-native-purchases';
 
 const AuthContext = createContext({});
 
@@ -24,7 +23,7 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         // Identify user in RevenueCat
         try {
-            await Purchases.logIn(currentUser.uid);
+            await RevenueCatService.logIn(currentUser.uid);
             await checkPremiumStatus(); // Sync status on login
         } catch (e) {
             console.error("RevenueCat login error:", e);
@@ -68,7 +67,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await signOut(auth);
-    await Purchases.logOut();
+    await RevenueCatService.logOut();
   };
 
   const refreshUserData = async () => {

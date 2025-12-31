@@ -165,7 +165,7 @@ export default function HomeScreen() {
         
         <ScrollView 
           style={styles.scrollView} 
-          contentContainerStyle={[styles.scrollContent, { paddingTop: 70 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: 50}]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.cardsContainer}>
