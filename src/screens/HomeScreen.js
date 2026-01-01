@@ -98,28 +98,27 @@ export default function HomeScreen() {
         .map(doc => {
           const data = doc.data();
           const localImage = getLocalImage(doc.id);
-          return { 
-            id: doc.id, 
+          
+          // Use local image if available, otherwise use data.photos
+          const photos = localImage ? [localImage] : (data.photos || []);
+          
+          return {
+            id: doc.id,
             ...data,
-            // Override photos with local image if available
-            photos: localImage ? [localImage] : (data.photos || [data.photoURL])
+            photos
           };
         })
-        .filter((profile) => profile.id !== user.uid && !passedUserIds.includes(profile.id));
+        .filter(profile => !passedUserIds.includes(profile.id));
 
-      // Sorting logic: 
-      // 1. Users matching 'interestedIn' come LAST (top of the stack)
-      // 2. Others come FIRST (bottom of the stack)
-      if (userData.interestedIn && userData.interestedIn !== 'both') {
-        fetchedProfiles.sort((a, b) => {
-          const aMatch = a.gender === userData.interestedIn;
-          const bMatch = b.gender === userData.interestedIn;
-          
-          if (aMatch && !bMatch) return 1;  // a goes to the end (top)
-          if (!aMatch && bMatch) return -1; // b goes to the end (top)
-          return 0;
-        });
-      }
+      // Sort profiles: Dummy users first (top of stack)
+      fetchedProfiles.sort((a, b) => {
+        const isADummy = a.id.toString().startsWith('dummy_');
+        const isBDummy = b.id.toString().startsWith('dummy_');
+
+        if (isADummy && !isBDummy) return 1; // Dummy (a) > Real (b) -> a is placed after b (top of stack)
+        if (!isADummy && isBDummy) return -1; // Real (a) < Dummy (b) -> a is placed before b
+        return 0;
+      });
 
       setProfiles(fetchedProfiles);
     } catch (error) {
