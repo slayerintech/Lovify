@@ -58,6 +58,9 @@ export default function LoginScreen() {
   });
 
   const onGoogle = async () => {
+    Alert.alert("Coming Soon", "Google sign in option coming soon. Create your account with email password.");
+    return;
+    
     try {
       if (ANDROID_CLIENT_ID === 'your-android-client-id') {
          Alert.alert('Configuration Error', 'Please set your Android Client ID in LoginScreen.js');

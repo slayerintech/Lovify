@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { collection, query, where, getDocs, doc, setDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
+import AdService from '../services/AdService';
 import { TinderCard } from '../components/TinderCard';
 import { MatchModal } from '../components/MatchModal';
 import { PurchaseModal } from '../components/PurchaseModal';
@@ -132,12 +133,14 @@ export default function HomeScreen() {
     const userSwiped = profiles[cardIndex];
     await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'dislike', timestamp: serverTimestamp() });
     setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
+    AdService.handleSwipe();
   };
 
   const swipeRight = async (cardIndex) => {
     const userSwiped = profiles[cardIndex];
     await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'like', timestamp: serverTimestamp() });
     setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
+    AdService.handleSwipe();
     const likedBackSnapshot = await getDoc(doc(db, 'likes', userSwiped.id, 'liked', user.uid));
     if (likedBackSnapshot.exists() && likedBackSnapshot.data().type === 'like') {
       const matchData = { users: [user.uid, userSwiped.id], usersData: { [user.uid]: userData, [userSwiped.id]: userSwiped }, createdAt: serverTimestamp() };

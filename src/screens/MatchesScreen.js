@@ -9,6 +9,7 @@ import { AppHeader } from '../components/AppHeader';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { MatchesBanner } from '../services/AdService';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -71,13 +72,17 @@ export default function MatchesScreen() {
       <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
+        <AppHeader style={styles.header} />
+        <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20 }}>
+          <MatchesBanner />
+        </View>
         
         <FlatList
           data={matches}
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
-          contentContainerStyle={[styles.list, { paddingTop: 60 }]}
+          contentContainerStyle={[styles.list, { paddingTop: 10 }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<Text style={styles.sectionTitle}>Your Matches</Text>}
           ListEmptyComponent={
@@ -90,7 +95,6 @@ export default function MatchesScreen() {
             </View>
           }
         />
-        <AppHeader style={styles.header} />
       </SafeAreaView>
     </View>
   );

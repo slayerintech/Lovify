@@ -1,5 +1,17 @@
-import Purchases from 'react-native-purchases';
 import { Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// Safely require Purchases only if not in Expo Go
+let Purchases;
+try {
+  if (!isExpoGo) {
+    Purchases = require('react-native-purchases').default;
+  }
+} catch (e) {
+  console.warn('RevenueCat (react-native-purchases) failed to load:', e);
+}
 
 // TODO: Replace with your actual RevenueCat API Keys
 const API_KEYS = {
@@ -11,6 +23,12 @@ class RevenueCatService {
   static isInitialized = false;
 
   static async init() {
+    // If in Expo Go or Purchases failed to load, skip initialization
+    if (isExpoGo || !Purchases) {
+      console.log('RevenueCat initialization skipped (Expo Go or Native Module missing)');
+      return;
+    }
+
     try {
       if (Platform.OS === 'ios') {
         Purchases.configure({ apiKey: API_KEYS.apple });
@@ -25,13 +43,13 @@ class RevenueCatService {
       await Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
       this.isInitialized = true;
     } catch (e) {
-      console.warn('RevenueCat init failed (likely missing native module):', e);
+      console.warn('RevenueCat init failed:', e);
       this.isInitialized = false;
     }
   }
 
   static async logIn(userId) {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !Purchases) return;
     try {
       return await Purchases.logIn(userId);
     } catch (e) {
@@ -41,7 +59,7 @@ class RevenueCatService {
   }
 
   static async logOut() {
-    if (!this.isInitialized) return;
+    if (!this.isInitialized || !Purchases) return;
     try {
       return await Purchases.logOut();
     } catch (e) {
@@ -50,7 +68,7 @@ class RevenueCatService {
   }
 
   static async getOfferings() {
-    if (!this.isInitialized) return [];
+    if (!this.isInitialized || !Purchases) return [];
     try {
       const offerings = await Purchases.getOfferings();
       if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
@@ -64,7 +82,7 @@ class RevenueCatService {
   }
 
   static async purchasePackage(pack) {
-    if (!this.isInitialized) throw new Error('RevenueCat not initialized');
+    if (!this.isInitialized || !Purchases) throw new Error('RevenueCat not initialized (or running in Expo Go)');
     try {
       const { customerInfo } = await Purchases.purchasePackage(pack);
       return customerInfo;
@@ -78,7 +96,7 @@ class RevenueCatService {
   }
 
   static async restorePurchases() {
-    if (!this.isInitialized) return null;
+    if (!this.isInitialized || !Purchases) return null;
     try {
       const customerInfo = await Purchases.restorePurchases();
       return customerInfo;
@@ -89,7 +107,7 @@ class RevenueCatService {
   }
 
   static async getCustomerInfo() {
-    if (!this.isInitialized) return null;
+    if (!this.isInitialized || !Purchases) return null;
     try {
       const customerInfo = await Purchases.getCustomerInfo();
       return customerInfo;
@@ -99,10 +117,12 @@ class RevenueCatService {
     }
   }
 
-  // Helper to check if user has active entitlement
   static isPremium(customerInfo) {
-    // Replace 'pro_access' with your actual Entitlement ID from RevenueCat dashboard
-    return customerInfo?.entitlements?.active?.['pro_access'] !== undefined;
+    if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) {
+      return false;
+    }
+    // Check if the user has the "premium" entitlement active
+    return typeof customerInfo.entitlements.active['premium'] !== 'undefined';
   }
 }
 

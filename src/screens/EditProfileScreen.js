@@ -10,6 +10,7 @@ import { GlassChip } from '../components/GlassChip';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import AdService from '../services/AdService';
 
 const { width } = Dimensions.get('window');
 const PHOTO_SIZE = width * 0.4; // Larger size for single photo
@@ -155,6 +156,7 @@ export default function EditProfileScreen({ navigation }) {
       };
       await setDoc(doc(db, 'users', user.uid), updateData, { merge: true });
       await refreshUserData();
+      await AdService.showSaveProfileAd();
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Update failed: ' + error.message);

@@ -9,6 +9,7 @@ import { AppHeader } from '../components/AppHeader';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { BannerAd, BannerAdSize, TestIds } from '../utils/AdMob';
 
 export default function ChatsScreen() {
   const { user } = useAuth();
@@ -62,8 +63,13 @@ export default function ChatsScreen() {
     // Check if it's the Lovify system message
     if (item.id === 'lovify_system') {
       return (
-        <View 
+        <TouchableOpacity 
+          activeOpacity={0.9}
           style={styles.chatCardWrapper}
+          onPress={async () => {
+            await AdService.showChatAd();
+            Alert.alert("Coming Soon", "Chat feature coming soon");
+          }}
         >
           <BlurView intensity={10} tint="dark" style={styles.chatCard}>
             <View style={styles.avatarContainer}>
@@ -88,7 +94,7 @@ export default function ChatsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.2)" />
           </BlurView>
-        </View>
+        </TouchableOpacity>
       );
     }
 
@@ -123,8 +129,12 @@ export default function ChatsScreen() {
       <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
+        <AppHeader style={styles.header} />
+        <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20 }}>
+          <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} />
+        </View>
         
-        <ScrollView contentContainerStyle={{ paddingTop: 60 }}>
+        <ScrollView contentContainerStyle={{ paddingTop: 0 }}>
           {matches.length > 0 && renderNewMatches()}
 
           <FlatList
@@ -145,7 +155,6 @@ export default function ChatsScreen() {
             }
           />
         </ScrollView>
-        <AppHeader style={styles.header} />
       </SafeAreaView>
     </View>
   );
