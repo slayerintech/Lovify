@@ -15,8 +15,8 @@ try {
 
 // TODO: Replace with your actual RevenueCat API Keys
 const API_KEYS = {
-  apple: 'test_xJaQLygSDpThuySQTyjpeHPNXus',
-  google: 'test_xJaQLygSDpThuySQTyjpeHPNXus',
+  apple: 'goog_SDuDFCzotjxFVuGgvCzUvGLEJhJ',
+  google: 'goog_SDuDFCzotjxFVuGgvCzUvGLEJhJ',
 };
 
 class RevenueCatService {
