@@ -99,8 +99,16 @@ export default function HomeScreen() {
           const data = doc.data();
           const localImage = getLocalImage(doc.id);
           
-          // Use local image if available, otherwise use data.photos
-          const photos = localImage ? [localImage] : (data.photos || []);
+          // Use local image if available, otherwise use data.photos (single string or array)
+          let photos = [];
+          if (localImage) {
+            photos = [localImage];
+          } else if (data.photo) {
+             // Handle single photo string from EditProfileScreen
+             photos = [data.photo];
+          } else if (Array.isArray(data.photos) && data.photos.length > 0) {
+             photos = data.photos;
+          }
           
           return {
             id: doc.id,

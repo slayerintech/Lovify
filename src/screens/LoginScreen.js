@@ -7,7 +7,6 @@ import { auth } from '../services/firebase';
 import { GlassButton } from '../components/GlassButton';
 import { GlassInput } from '../components/GlassInput';
 import { COLORS } from '../styles/theme';
-import { makeRedirectUri } from 'expo-auth-session';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
@@ -26,18 +25,9 @@ export default function LoginScreen() {
 
   WebBrowser.maybeCompleteAuthSession();
   const isDev = __DEV__;
-  const ANDROID_CLIENT_ID = '1014322922040-jbp96d1498fc785e6uhmjpj0qq163lac.apps.googleusercontent.com'; // add your Android client ID here for production builds
+  const ANDROID_CLIENT_ID = '1014322922040-t8obvkhlknih04jv4fe4vpeu48s8s6kj.apps.googleusercontent.com'; // add your Android client ID here for production builds
   const WEB_CLIENT_ID = '1014322922040-18vqb0a00c7he05s0hjfpr4d1iagta2l.apps.googleusercontent.com';
   
-  const redirectUri = makeRedirectUri({
-    useProxy: isDev,
-    scheme: isDev ? undefined : 'lovify'
-  });
-
-  useEffect(() => {
-    console.log('generated redirect uri:', redirectUri);
-  }, [redirectUri]);
-
   useEffect(() => {
     if (response?.type === 'success') {
       const { id_token } = response.params;
@@ -54,20 +44,14 @@ export default function LoginScreen() {
     androidClientId: isDev ? WEB_CLIENT_ID : ANDROID_CLIENT_ID,
     webClientId: WEB_CLIENT_ID,
     scopes: ['profile', 'email'],
-    redirectUri
   });
 
   const onGoogle = async () => {
-    Alert.alert("Coming Soon", "Google sign in option coming soon. Create your account with email password.");
-    return;
-    
     try {
       if (ANDROID_CLIENT_ID === 'your-android-client-id') {
          Alert.alert('Configuration Error', 'Please set your Android Client ID in LoginScreen.js');
          return;
       }
-      
-      console.log('Redirect URI:', redirectUri); // For debugging
       
       const result = await promptAsync();
       

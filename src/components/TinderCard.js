@@ -1,5 +1,5 @@
-import React, { forwardRef, useImperativeHandle, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import React, { forwardRef, useImperativeHandle, useEffect, useState } from 'react';
+import { View, Text, Image, StyleSheet, Dimensions, ScrollView, ActivityIndicator } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -23,6 +23,7 @@ import { COLORS } from '../styles/theme';
 const { width, height } = Dimensions.get('window');
 
 export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, onSwipeRight }, ref) => {
+  const [isImageLoading, setIsImageLoading] = useState(true);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const startX = useSharedValue(0);
@@ -190,11 +191,20 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.card, animatedStyle, borderStyle]}>
         {/* Full Screen Image */}
-        <Image 
-          source={user.imageId && LOCAL_IMAGES[user.imageId] ? LOCAL_IMAGES[user.imageId] : (typeof user.photos[0] === 'number' ? user.photos[0] : { uri: user.photos[0] })} 
-          style={styles.image} 
-          fadeDuration={0} // Disable fade animation for snappier loading
-        />
+        <View style={StyleSheet.absoluteFill}>
+          <Image 
+            source={user.imageId && LOCAL_IMAGES[user.imageId] ? LOCAL_IMAGES[user.imageId] : (typeof user.photos[0] === 'number' ? user.photos[0] : { uri: user.photos[0] })} 
+            style={styles.image} 
+            fadeDuration={0} // Disable fade animation for snappier loading
+            onLoadStart={() => setIsImageLoading(true)}
+            onLoadEnd={() => setIsImageLoading(false)}
+          />
+          {isImageLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+          )}
+        </View>
         
         {/* Gradient Overlay */}
         <LinearGradient
@@ -240,6 +250,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a', // Dark background while loading
+    zIndex: 1,
   },
   gradient: {
     position: 'absolute',

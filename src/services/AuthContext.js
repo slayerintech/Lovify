@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import RevenueCatService from './revenueCat';
+import AdService from './AdService';
 
 const AuthContext = createContext({});
 
@@ -11,9 +12,10 @@ export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize RevenueCat
+  // Initialize Services
   useEffect(() => {
     RevenueCatService.init();
+    AdService.init();
   }, []);
 
   // Listen to Auth State
@@ -47,9 +49,12 @@ export const AuthProvider = ({ children }) => {
       
       unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
-          setUserData(docSnap.data());
+          const data = docSnap.data();
+          setUserData(data);
+          AdService.setPremiumStatus(!!data.isPremium); // Update AdService
         } else {
           setUserData(null);
+          AdService.setPremiumStatus(false);
         }
         setLoading(false);
       }, (error) => {

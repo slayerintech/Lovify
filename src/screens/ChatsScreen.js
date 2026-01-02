@@ -10,6 +10,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BannerAd, BannerAdSize, TestIds } from '../utils/AdMob';
+import AdService, { ChatsBanner } from '../services/AdService';
 
 export default function ChatsScreen() {
   const { user } = useAuth();
@@ -131,7 +132,7 @@ export default function ChatsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <AppHeader style={styles.header} />
         <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20 }}>
-          <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} />
+          <ChatsBanner />
         </View>
         
         <ScrollView contentContainerStyle={{ paddingTop: 0 }}>

@@ -68,7 +68,14 @@ class RevenueCatService {
   }
 
   static async getOfferings() {
-    if (!this.isInitialized || !Purchases) return [];
+    if (!this.isInitialized || !Purchases) {
+      console.log('Returning MOCK packages for Expo Go / Dev mode');
+      return [
+        { identifier: 'monthly_subscription', packageType: 'MONTHLY', product: { priceString: '$4.99' } },
+        { identifier: 'yearly_subscription', packageType: 'ANNUAL', product: { priceString: '$49.99' } },
+        { identifier: 'lifetime_access', packageType: 'LIFETIME', product: { priceString: '$99.99' } },
+      ];
+    }
     try {
       const offerings = await Purchases.getOfferings();
       if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
@@ -82,7 +89,16 @@ class RevenueCatService {
   }
 
   static async purchasePackage(pack) {
-    if (!this.isInitialized || !Purchases) throw new Error('RevenueCat not initialized (or running in Expo Go)');
+    if (!this.isInitialized || !Purchases) {
+        console.log('Simulating MOCK purchase for:', pack.identifier);
+        return { 
+            entitlements: { 
+                active: { 
+                    pro: { identifier: 'pro', isActive: true } 
+                } 
+            } 
+        };
+    }
     try {
       const { customerInfo } = await Purchases.purchasePackage(pack);
       return customerInfo;

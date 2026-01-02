@@ -137,15 +137,21 @@ export default function ProfileScreen() {
                 <Text style={styles.subtext}>Ready to find love</Text>
               </View>
 
-              {/* Edit Button (Glassy Style) */}
+              {/* Edit Button (Gradient Pill Style) */}
               <TouchableOpacity 
-                style={styles.editButton} 
                 onPress={() => navigation.navigate('EditProfile')}
                 activeOpacity={0.8}
+                style={styles.editBtnContainer}
               >
-                <BlurView intensity={80} tint="dark" style={styles.editButtonBlur}>
-                  <Ionicons name="pencil" size={20} color="#fff" />
-                </BlurView>
+                <LinearGradient
+                  colors={['#FF2D55', '#FF375F']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.editButtonGradient}
+                >
+                  <Ionicons name="create-outline" size={18} color="#fff" />
+                  <Text style={styles.editButtonText}>Edit</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -166,16 +172,22 @@ export default function ProfileScreen() {
                   <Text style={styles.premiumTitle}>Lovify Premium</Text>
                   <Text style={styles.premiumSubtitle}>Unlock exclusive features</Text>
                 </View>
-                <View style={styles.proBadge}>
+                <LinearGradient 
+                  colors={['#FFD700', '#FFA500']} 
+                  start={{ x: 0, y: 0 }} 
+                  end={{ x: 1, y: 1 }} 
+                  style={styles.proBadge}
+                >
+                  <Ionicons name="diamond" size={12} color="#000" style={{ marginRight: 4 }} />
                   <Text style={styles.proText}>PRO</Text>
-                </View>
+                </LinearGradient>
               </View>
 
               <View style={styles.perksContainer}>
                 <PerkItem icon="infinite" text="Unlimited Swipes" />
                 <PerkItem icon="eye" text="See Who Likes You" />
                 <PerkItem icon="flash" text="1 Free Boost per month" />
-                <PerkItem icon="star" text="5 Super Likes a day" />
+                <PerkItem icon="ban" text="No Advertisements" />
               </View>
 
               <TouchableOpacity 
@@ -326,18 +338,25 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     marginTop: 2,
   },
-  editButton: {
-    borderRadius: 25,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  editBtnContainer: {
+    shadowColor: '#FF2D55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  editButtonBlur: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
+  editButtonGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    gap: 6,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 
   // Premium Card Styles
@@ -371,15 +390,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   proBadge: {
-    backgroundColor: '#FF2D55',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
   proText: {
     color: '#000',
     fontWeight: '900',
-    fontSize: 18,
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   perksContainer: {
     marginBottom: 20,

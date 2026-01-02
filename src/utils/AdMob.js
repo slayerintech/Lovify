@@ -65,6 +65,43 @@ const MockRewardedAd = {
   },
 };
 
+const MockInterstitialAd = {
+  createForAdRequest: (adUnitId, options) => {
+    let _loaded = false;
+    let _onLoaded = null;
+    let _onClosed = null;
+
+    return {
+      addAdEventListener: (event, callback) => {
+        if (event === 'loaded') {
+          _onLoaded = callback;
+          if (_loaded) callback();
+        } else if (event === 'closed') {
+          _onClosed = callback;
+        }
+      },
+      load: () => {
+        console.log(`[MOCK] Loading Interstitial Ad: ${adUnitId}`);
+        setTimeout(() => {
+          _loaded = true;
+          if (_onLoaded) _onLoaded();
+          console.log(`[MOCK] Interstitial Ad Loaded`);
+        }, 1000);
+      },
+      show: () => {
+        console.log(`[MOCK] Showing Interstitial Ad`);
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            if (_onClosed) _onClosed();
+            console.log(`[MOCK] Interstitial Ad Closed`);
+            resolve();
+          }, 1500);
+        });
+      },
+    };
+  },
+};
+
 // ------------------------------------------------------------------
 // EXPORTS
 // ------------------------------------------------------------------
@@ -78,6 +115,8 @@ export const TestIds = {
 // If native module exists, use it. Otherwise use Mocks.
 export const BannerAd = GoogleMobileAds?.BannerAd || MockBannerAd;
 export const RewardedAd = GoogleMobileAds?.RewardedAd || MockRewardedAd;
+export const InterstitialAd = GoogleMobileAds?.InterstitialAd || MockInterstitialAd;
+
 export const BannerAdSize = GoogleMobileAds?.BannerAdSize || {
   ANCHORED_ADAPTIVE_BANNER: 'ANCHORED_ADAPTIVE_BANNER',
   BANNER: 'BANNER',
@@ -90,6 +129,12 @@ export const BannerAdSize = GoogleMobileAds?.BannerAdSize || {
 export const RewardedAdEventType = GoogleMobileAds?.RewardedAdEventType || {
   LOADED: 'loaded',
   EARNED_REWARD: 'earned_reward',
+};
+export const AdEventType = GoogleMobileAds?.AdEventType || {
+  LOADED: 'loaded',
+  CLOSED: 'closed',
+  OPENED: 'opened',
+  ERROR: 'error',
 };
 
 export const initializeAds = async () => {

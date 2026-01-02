@@ -73,7 +73,7 @@ export default function MatchesScreen() {
       
       <SafeAreaView style={styles.safeArea}>
         <AppHeader style={styles.header} />
-        <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20 }}>
+        <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20, width: '100%' }}>
           <MatchesBanner />
         </View>
         

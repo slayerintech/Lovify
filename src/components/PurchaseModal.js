@@ -28,6 +28,7 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
   const [isVisible, setIsVisible] = useState(visible);
   const [selectedPlan, setSelectedPlan] = useState(PLANS[1]); // Default to Yearly
   const [availablePackages, setAvailablePackages] = useState({}); // Map of identifier -> package
+  const [allPackages, setAllPackages] = useState([]); // Store all fetched packages for debug
   const { restorePurchases } = useAuth();
 
   useEffect(() => {
@@ -51,6 +52,8 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
   const fetchOffering = async () => {
     try {
       const packages = await RevenueCatService.getOfferings();
+      setAllPackages(packages);
+      console.log("Fetched packages:", packages.map(p => ({ id: p.identifier, type: p.packageType })));
       const packageMap = {};
       
       // Map packages by packageType (MONTHLY, ANNUAL, LIFETIME) or identifier
@@ -77,14 +80,16 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
     try {
         if (realPackage) {
             await RevenueCatService.purchasePackage(realPackage);
+            onPurchase(); 
         } else {
-             // Fallback: Try to purchase using product identifier directly if package not mapped
-             // This might fail if the SDK requires a full package object, but worth a try 
-             // or we assume the user hasn't set up this specific package yet.
-             console.log("No matching package found for", selectedPlan.id, "using fallback.");
-             await RevenueCatService.purchasePackage({ product: { identifier: selectedPlan.id } });
+             console.log("No matching package found for", selectedPlan.id);
+             const availableIds = allPackages.map(p => p.identifier).join(', ');
+             Alert.alert(
+                "Purchase Failed",
+                `This subscription plan is not currently available.\n\nDebug Info (Send to Dev):\nSelected: ${selectedPlan.id}\nAvailable: ${availableIds || 'None'}`,
+                [{ text: "OK" }]
+             );
         }
-        onPurchase(); 
     } catch (e) {
         if (!e.userCancelled) {
              // console.log("Purchase failed:", e);
@@ -159,10 +164,10 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
         >
           <View style={styles.blurContainer}>
              <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill} />
-             <LinearGradient
-                colors={['rgba(110, 51, 177, 0.2)', 'rgba(14, 3, 7, 0.8)']}
+              <LinearGradient
+                colors={['rgba(255, 45, 85, 0.2)', 'rgba(14, 3, 7, 0.8)']}
                 style={StyleSheet.absoluteFill}
-             />
+              />
              
              {/* Drag Indicator */}
              <View style={styles.line} />
@@ -249,7 +254,7 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                   style={styles.purchaseButtonWrapper}
                 >
                   <LinearGradient
-                    colors={['#007AFF', '#0055FF']}
+                    colors={['#FF2D55', '#FF0055']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.purchaseButton}
