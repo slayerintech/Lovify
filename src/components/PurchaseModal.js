@@ -11,12 +11,6 @@ import { useAuth } from '../services/AuthContext';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Calculate card width to fit 3 items with padding/margins
-// Screen Width - (Horizontal Padding * 2) - (Gap * 2) / 3
-const CARD_GAP = 8;
-const PADDING = 12;
-const CARD_WIDTH = (SCREEN_WIDTH - (PADDING * 2) - (CARD_GAP * 2)) / 3;
-
 const PLANS = [
   { id: 'monthly', name: 'Monthly', price: '₹149', priceValue: 149, subtitle: 'Standard' },
   { id: 'yearly', name: 'Yearly', price: '₹999', priceValue: 999, subtitle: 'Best Value', save: 'Save 45%' },
@@ -69,6 +63,7 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
       setAvailablePackages(packageMap);
     } catch (e) {
       console.log("Error fetching offerings:", e);
+      Alert.alert('Configuration Error', 'Failed to load subscription packages. Please check your internet connection or try again later.\n\nError: ' + e.message);
     }
   };
   
@@ -165,56 +160,44 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
           <View style={styles.blurContainer}>
              <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill} />
               <LinearGradient
-                colors={['rgba(255, 45, 85, 0.2)', 'rgba(14, 3, 7, 0.8)']}
+                colors={['#1a1a1a', '#000000']}
                 style={StyleSheet.absoluteFill}
               />
              
-             {/* Drag Indicator */}
-             <View style={styles.line} />
+             {/* Drag Indicator & Header Area */}
+             <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
+                 <View style={styles.line} />
+                 <View style={styles.headerContainer}>
+                    <Text style={styles.title}>Unlock Premium</Text>
+                    <Text style={styles.subtitle}>Supercharge your dating life</Text>
+                </View>
+             </View>
              
              {/* Close Button - Absolute Position */}
              <TouchableOpacity onPress={handleClose} style={styles.closeButtonAbs}>
-                <Ionicons name="close-circle" size={30} color="rgba(255,255,255,0.5)" />
+                <Ionicons name="close-circle" size={30} color="rgba(255,255,255,0.3)" />
              </TouchableOpacity>
 
-             {/* Gradient Glow Borders */}
-             <LinearGradient
-               colors={['rgba(192, 180, 227, 0.3)', 'transparent']}
-               style={styles.topBorder}
-             />
-
-            <View style={styles.innerContent}>
+            <ScrollView 
+              style={styles.innerContent}
+              contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 60 : 40 }}
+              showsVerticalScrollIndicator={false}
+            >
               
               {/* Content */}
               <View style={styles.content}>
-                <View style={styles.iconContainer}>
-                  <LinearGradient
-                    colors={['#FF2D55', '#FFA500']}
-                    style={styles.iconGradient}
-                  >
-                    <Ionicons name="diamond" size={40} color="#FFF" />
-                  </LinearGradient>
-                </View>
                 
-                <Text style={styles.title}>Lovify Premium</Text>
-                <Text style={styles.subtitle}>Unlock all features and find love faster.</Text>
-
-                {/* Features List */}
-                <View style={styles.featuresContainer}>
-                  <FeatureRow icon="infinite" text="Unlimited Swipes" />
-                  <FeatureRow icon="eye" text="See Who Likes You" />
-                  <FeatureRow icon="flash" text="1 Free Boost per Month" />
-                  <FeatureRow icon="location" text="Passport to Any Location" />
+                {/* Features Grid */}
+                <View style={styles.featuresGrid}>
+                  <FeatureItem icon="infinite" text="Unlimited Swipes" />
+                  <FeatureItem icon="eye" text="See Who Likes You" />
+                  <FeatureItem icon="chatbubbles" text="Chat with your match" />
+                  <FeatureItem icon="ban" text="No Advertisement" />
                 </View>
 
-                {/* Plans List */}
+                {/* Plans List - Vertical */}
                 <View style={styles.plansContainer}>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 4 }}
-                  >
-                    {PLANS.map((plan, index) => {
+                    {PLANS.map((plan) => {
                       const isSelected = selectedPlan.id === plan.id;
                       return (
                         <TouchableOpacity 
@@ -222,28 +205,31 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                           activeOpacity={0.8}
                           onPress={() => setSelectedPlan(plan)}
                           style={[
-                            styles.planCard, 
-                            isSelected && styles.selectedPlanCard,
-                            { marginRight: index === PLANS.length - 1 ? 0 : CARD_GAP }
+                            styles.planRow, 
+                            isSelected && styles.selectedPlanRow
                           ]}
                         >
-                          {plan.save && (
-                            <View style={styles.saveBadge}>
-                              <Text style={styles.saveText}>{plan.save}</Text>
-                            </View>
-                          )}
-                          <Text style={styles.planDuration}>{plan.name}</Text>
-                          <Text style={styles.planPrice}>{plan.price}</Text>
-                          <Text style={styles.planSubtitle}>{plan.subtitle}</Text>
-                          {isSelected && (
-                             <View style={styles.selectedCheck}>
-                                <Ionicons name="checkmark-circle" size={20} color="#FF2D55" />
-                             </View>
-                          )}
+                          {/* Radio Button */}
+                          <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
+                              {isSelected && <View style={styles.radioButtonInner} />}
+                          </View>
+
+                          <View style={styles.planDetails}>
+                              <View style={styles.planHeaderRow}>
+                                  <Text style={styles.planName}>{plan.name}</Text>
+                                  {plan.save && (
+                                    <View style={styles.saveBadge}>
+                                      <Text style={styles.saveText}>{plan.save}</Text>
+                                    </View>
+                                  )}
+                              </View>
+                              <Text style={styles.planPrice}>{plan.price}</Text>
+                          </View>
+                          
+                          <Text style={styles.planSubtitleRight}>{plan.subtitle}</Text>
                         </TouchableOpacity>
                       );
                     })}
-                  </ScrollView>
                 </View>
 
                 {/* Purchase Button */}
@@ -254,7 +240,7 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                   style={styles.purchaseButtonWrapper}
                 >
                   <LinearGradient
-                    colors={['#FF2D55', '#FF0055']}
+                    colors={['#FF4D67', '#FF0055']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.purchaseButton}
@@ -262,25 +248,22 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                     {processing ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <>
-                        <Ionicons name="card" size={20} color="#FFF" style={{ marginRight: 8 }} />
-                        <Text style={styles.purchaseButtonText}>
-                            Pay {selectedPlan.price}
-                        </Text>
-                      </>
+                      <Text style={styles.purchaseButtonText}>
+                          Continue
+                      </Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
                 
-                <TouchableOpacity onPress={handleRestore} style={{ marginTop: 10 }}>
+                <TouchableOpacity onPress={handleRestore} style={{ marginTop: 16 }}>
                     <Text style={styles.restoreText}>Restore Purchases</Text>
                 </TouchableOpacity>
                 
                 <Text style={styles.termsText}>
-                  Subscription automatically renews unless auto-renew is turned off at least 24-hours before the end of the current period.
+                  Recurring billing, cancel anytime. By continuing you agree to our Terms.
                 </Text>
               </View>
-            </View>
+            </ScrollView>
           </View>
         </Animated.View>
       </View>
@@ -288,9 +271,11 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
   );
 };
 
-const FeatureRow = ({ icon, text }) => (
-  <View style={styles.featureRow}>
-    <Ionicons name="checkmark-circle" size={22} color="#32D74B" style={{ marginRight: 12 }} />
+const FeatureItem = ({ icon, text }) => (
+  <View style={styles.featureItem}>
+    <View style={styles.featureIconCircle}>
+        <Ionicons name={icon} size={20} color="#FF2D55" />
+    </View>
     <Text style={styles.featureText}>{text}</Text>
   </View>
 );
@@ -298,183 +283,203 @@ const FeatureRow = ({ icon, text }) => (
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
     width: '100%',
+    height: '85%', // Taller modal
     backgroundColor: 'transparent',
   },
   blurContainer: {
-    width: '100%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    flex: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     overflow: 'hidden',
+    backgroundColor: '#121212',
   },
   innerContent: {
-    paddingHorizontal: 12,
-    paddingTop: 20, // Reduced top padding
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  dragHandleArea: {
+    width: '100%',
+    paddingBottom: 10,
+    backgroundColor: 'transparent',
   },
   line: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 12,
+    marginBottom: 20,
     borderRadius: 2,
-    zIndex: 10,
-  },
-  topBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    zIndex: 3,
   },
   closeButtonAbs: {
     position: 'absolute',
     top: 15,
     right: 15,
     zIndex: 20,
-    padding: 4,
+    padding: 8,
   },
   content: {
     alignItems: 'center',
+    paddingBottom: 40,
   },
-  iconContainer: {
-    marginBottom: 12, // Reduced
-    shadowColor: '#FF2D55',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  iconGradient: {
-    width: 64, // Slightly smaller
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerContainer: {
+      alignItems: 'center',
+      marginBottom: 30,
   },
   title: {
-    fontSize: 24, // Slightly smaller
+    fontSize: 28,
     fontWeight: '800',
     color: '#FFF',
-    marginBottom: 4,
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 15,
-    color: '#8E8E93',
-    marginBottom: 20, // Reduced
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
   },
-  featuresContainer: {
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 24, // Reduced
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 16, // Reduced
+    marginBottom: 30,
   },
-  featureRow: {
+  featureItem: {
+    width: '48%',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 12,
+    borderRadius: 12,
+  },
+  featureIconCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(255, 45, 85, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 10,
   },
   featureText: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#FFF',
-    fontWeight: '500',
+    fontWeight: '600',
+    flex: 1,
   },
   plansContainer: {
-    marginVertical: 20,
-    height: 180,
+    width: '100%',
+    marginBottom: 30,
   },
-  planCard: {
-    width: CARD_WIDTH,
-    height: 170,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    padding: 8, // Reduced padding to fit content in narrower card
-    borderWidth: 2,
-    borderColor: 'transparent',
-    justifyContent: 'center',
+  planRow: {
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-  selectedPlanCard: {
-    backgroundColor: 'rgba(255, 45, 85, 0.15)',
+  selectedPlanRow: {
+    backgroundColor: 'rgba(255, 45, 85, 0.1)',
     borderColor: '#FF2D55',
   },
-  planDuration: {
+  radioButton: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: 'rgba(255,255,255,0.3)',
+      marginRight: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
+  },
+  radioButtonSelected: {
+      borderColor: '#FF2D55',
+  },
+  radioButtonInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: '#FF2D55',
+  },
+  planDetails: {
+      flex: 1,
+  },
+  planHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+  },
+  planName: {
     color: '#FFF',
-    fontSize: 13, // Slightly smaller
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 8,
+    fontSize: 16,
+    fontWeight: '700',
+    marginRight: 8,
   },
   planPrice: {
-    color: '#FFF',
-    fontSize: 16, // Slightly smaller to fit
-    fontWeight: 'bold',
-    marginBottom: 4,
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 15,
+    fontWeight: '500',
   },
-  planSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
-    textAlign: 'center',
+  planSubtitleRight: {
+      color: 'rgba(255,255,255,0.5)',
+      fontSize: 13,
+      fontWeight: '500',
   },
   saveBadge: {
-    position: 'absolute',
-    top: 8, // Moved down from -10 to be inside the card
-    right: 8, // Positioned at top-right
     backgroundColor: '#FF2D55',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 10,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   saveText: {
     color: '#FFF',
-    fontSize: 9, // Slightly smaller font
-    fontWeight: 'bold',
-  },
-  selectedCheck: {
-    position: 'absolute',
-    bottom: 8, // Moved to bottom-right instead of top-right
-    right: 8,
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   purchaseButtonWrapper: {
     width: '100%',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    marginBottom: 12,
+    shadowColor: '#FF2D55',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    marginBottom: 16,
   },
   purchaseButton: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    flexDirection: 'row',
+    paddingVertical: 18,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
   purchaseButtonText: {
     color: '#FFF',
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   restoreText: {
-      color: '#007AFF',
+      color: 'rgba(255,255,255,0.5)',
       fontSize: 14,
       fontWeight: '600',
-      textAlign: 'center',
-      marginBottom: 10,
   },
   termsText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
+    marginTop: 20,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.3)',
     textAlign: 'center',
     lineHeight: 16,
+    paddingHorizontal: 20,
   },
 });

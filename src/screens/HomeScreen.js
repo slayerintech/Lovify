@@ -72,11 +72,9 @@ export default function HomeScreen() {
     // startHeartbeat();
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfiles();
-    }, [user, userData])
-  );
+  useEffect(() => {
+    fetchProfiles();
+  }, [user]);
 
   const fetchProfiles = async (reset = false) => {
     if (!user || !userData) return;
@@ -136,11 +134,33 @@ export default function HomeScreen() {
     }
   };
 
+  const updateDailySwipes = async () => {
+    if (userData?.isPremium) return;
+    try {
+        const today = new Date().toDateString();
+        const statsRef = doc(db, 'users', user.uid, 'dailyStats', today);
+        const statsDoc = await getDoc(statsRef);
+        
+        let newCount = 1;
+        if (statsDoc.exists()) {
+            newCount = (statsDoc.data().swipesCount || 0) + 1;
+            await setDoc(statsRef, { swipesCount: newCount }, { merge: true });
+        } else {
+            await setDoc(statsRef, { swipesCount: 1 });
+        }
+        console.log("Updated daily swipes count to:", newCount);
+    } catch (e) {
+        console.error("Error updating daily stats:", e);
+        Alert.alert("Debug Error", "Stats update failed: " + e.message);
+    }
+  };
+
   const swipeLeft = async (cardIndex) => {
     const userSwiped = profiles[cardIndex];
     await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'dislike', timestamp: serverTimestamp() });
     setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
     AdService.handleSwipe();
+    updateDailySwipes();
   };
 
   const swipeRight = async (cardIndex) => {
@@ -148,6 +168,8 @@ export default function HomeScreen() {
     await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'like', timestamp: serverTimestamp() });
     setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
     AdService.handleSwipe();
+    updateDailySwipes();
+
     const likedBackSnapshot = await getDoc(doc(db, 'likes', userSwiped.id, 'liked', user.uid));
     if (likedBackSnapshot.exists() && likedBackSnapshot.data().type === 'like') {
       const matchData = { users: [user.uid, userSwiped.id], usersData: { [user.uid]: userData, [userSwiped.id]: userSwiped }, createdAt: serverTimestamp() };

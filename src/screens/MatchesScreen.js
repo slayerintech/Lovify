@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppHeader } from '../components/AppHeader';
+import { PurchaseModal } from '../components/PurchaseModal';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,9 +18,56 @@ const COLUMN_COUNT = 2;
 const CARD_WIDTH = (width - 60) / COLUMN_COUNT;
 
 export default function MatchesScreen() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const [matches, setMatches] = useState([]);
+  const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
+  const [showLocked, setShowLocked] = useState(false);
   const navigation = useNavigation();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user || userData?.isPremium) {
+          setShowLocked(false);
+          return;
+      }
+
+      const checkSwipeStatus = async () => {
+          try {
+              const today = new Date().toDateString();
+              // Check daily stats from Firestore
+              const statsRef = doc(db, 'users', user.uid, 'dailyStats', today);
+              
+              // We use onSnapshot to listen for real-time updates to swipe count
+              const unsubscribe = onSnapshot(statsRef, (docSnap) => {
+                  if (docSnap.exists()) {
+                      const swipes = docSnap.data().swipesCount || 0;
+                      // Show locked match if user has swiped 5 or more times
+                      if (swipes >= 5) {
+                          setShowLocked(true);
+                      } else {
+                          setShowLocked(false);
+                      }
+                  } else {
+                      setShowLocked(false);
+                  }
+              });
+
+              return () => unsubscribe();
+          } catch (e) {
+              console.error("Error checking swipe status", e);
+          }
+      };
+
+      const unsubscribePromise = checkSwipeStatus();
+      
+      // Cleanup function
+      return () => {
+          unsubscribePromise.then(unsubscribe => {
+              if (unsubscribe) unsubscribe();
+          });
+      };
+    }, [user, userData])
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -42,7 +91,33 @@ export default function MatchesScreen() {
     return () => unsubscribe();
   }, [user]);
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }) => {
+    if (item.id === 'locked_match') {
+      return (
+        <TouchableOpacity 
+          activeOpacity={0.9}
+          style={styles.cardWrapper}
+          onPress={() => setPurchaseModalVisible(true)}
+        >
+          <View style={styles.glassCard}>
+            <Image 
+              source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80' }} 
+              style={[styles.cardImage, { opacity: 0.8 }]} 
+              blurRadius={Platform.OS === 'ios' ? 60 : 30}
+            />
+            <View style={styles.lockedOverlay}>
+              <View style={styles.lockIconCircle}>
+                <Ionicons name="lock-closed" size={24} color="#FF2D55" />
+              </View>
+              <Text style={styles.lockedTitle}>Someone liked you!</Text>
+              <Text style={styles.lockedSubtitle}>Tap to unlock</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
     <TouchableOpacity 
       activeOpacity={0.8}
       style={styles.cardWrapper}
@@ -64,7 +139,11 @@ export default function MatchesScreen() {
         </LinearGradient>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
+
+  // Determine if we should show the locked match
+  const data = showLocked ? [{ id: 'locked_match' }, ...matches] : matches;
 
   return (
     <View style={styles.container}>
@@ -78,7 +157,7 @@ export default function MatchesScreen() {
         </View>
         
         <FlatList
-          data={matches}
+          data={data}
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
@@ -96,6 +175,16 @@ export default function MatchesScreen() {
           }
         />
       </SafeAreaView>
+
+      <PurchaseModal 
+        visible={purchaseModalVisible}
+        onClose={() => setPurchaseModalVisible(false)}
+        onPurchase={() => {
+            setPurchaseModalVisible(false);
+            // Add navigation to purchase or actual purchase logic here
+            // For now, let's just close it, assuming PurchaseModal handles the purchase flow
+        }}
+      />
     </View>
   );
 }
@@ -139,6 +228,39 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
+  },
+  lockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  lockIconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 45, 85, 0.5)',
+  },
+  lockedTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  lockedSubtitle: {
+    color: '#FF2D55',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   glassCard: {
     flex: 1,

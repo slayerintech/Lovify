@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+import Constants from 'expo-constants';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { GlassButton } from '../components/GlassButton';
@@ -40,9 +41,14 @@ export default function LoginScreen() {
 
   // In Expo Go, we use the Web Client ID for the Android Client ID prop to satisfy the library requirement
   // and ensure the request uses a Client ID that supports the redirect URI.
+  const redirectUri = makeRedirectUri({
+    scheme: 'lovify',
+  });
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: isDev ? WEB_CLIENT_ID : ANDROID_CLIENT_ID,
     webClientId: WEB_CLIENT_ID,
+    redirectUri,
     scopes: ['profile', 'email'],
   });
 

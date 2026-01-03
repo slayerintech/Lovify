@@ -186,8 +186,8 @@ export default function ProfileScreen() {
               <View style={styles.perksContainer}>
                 <PerkItem icon="infinite" text="Unlimited Swipes" />
                 <PerkItem icon="eye" text="See Who Likes You" />
-                <PerkItem icon="flash" text="1 Free Boost per month" />
-                <PerkItem icon="ban" text="No Advertisements" />
+                <PerkItem icon="chatbubbles" text="Chat with your match" />
+                <PerkItem icon="ban" text="No Advertisement" />
               </View>
 
               <TouchableOpacity 

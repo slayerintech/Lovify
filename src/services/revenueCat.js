@@ -81,10 +81,11 @@ class RevenueCatService {
       if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
         return offerings.current.availablePackages;
       }
+      console.log('No offerings found. Check RevenueCat configuration.');
       return [];
     } catch (e) {
       console.error('Error getting offerings:', e);
-      return [];
+      throw e;
     }
   }
 
