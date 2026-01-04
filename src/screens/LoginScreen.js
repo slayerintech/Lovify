@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { GlassButton } from '../components/GlassButton';
 import { GlassInput } from '../components/GlassInput';
 import { COLORS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-
-// Ensure WebBrowser completes the session
-WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [isSignup, setIsSignup] = useState(false);
@@ -26,36 +22,38 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Client IDs
+  // Use the Web Client ID from Firebase Console
   const WEB_CLIENT_ID = '1014322922040-18vqb0a00c7he05s0hjfpr4d1iagta2l.apps.googleusercontent.com';
-  // Note: For native Google Sign-In (system picker), you need a valid Android Client ID in google-services.json
-  // and use the @react-native-google-signin/google-signin library.
-  // Currently falling back to expo-auth-session to prevent crashes if native module is missing.
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: WEB_CLIENT_ID,
-    androidClientId: WEB_CLIENT_ID, // Using Web Client ID to prevent "must be defined" error
-  });
-
+  
   useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential)
-        .catch((error) => {
-          Alert.alert('Login Error', error.message);
-        });
-    } else if (response?.type === 'error') {
-      Alert.alert('Google Sign-In Error', response.error?.message || 'Something went wrong');
-    }
-  }, [response]);
+    GoogleSignin.configure({
+      webClientId: WEB_CLIENT_ID,
+    });
+  }, []);
 
   const onGoogle = async () => {
     try {
-      await promptAsync();
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', err.message);
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const { idToken } = userInfo.data || userInfo;
+
+      if (!idToken) {
+          throw new Error('No ID token found');
+      }
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('User cancelled login');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('Sign in in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services not available');
+      } else {
+        console.error(error);
+        Alert.alert('Google Sign-In Error', error.message);
+      }
     }
   };
 
