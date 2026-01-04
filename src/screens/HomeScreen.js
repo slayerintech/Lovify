@@ -17,6 +17,8 @@ import { INTERESTS_LIST } from '../data/constants';
 import { getLocalImage } from '../utils/imageMap';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const { width, height } = Dimensions.get('window');
 const GAP = 10;
 const ITEM_WIDTH = (width - 40 - (GAP * 2)) / 3; // 40 is paddingHorizontal (20*2)
@@ -143,7 +145,20 @@ export default function HomeScreen() {
         // Use increment for atomic updates to avoid race conditions
         await setDoc(statsRef, { swipesCount: increment(1) }, { merge: true });
         
-        console.log("Updated daily swipes count");
+        console.log("Updated daily swipes count for " + today);
+        
+        // Debugging: Fetch current count to verify
+        const snap = await getDoc(statsRef);
+        if (snap.exists()) {
+             const currentCount = snap.data().swipesCount;
+             console.log("Current swipe count:", currentCount);
+             
+             // Force refresh logic for testing locked match
+             if (currentCount >= 3) {
+                 await AsyncStorage.setItem(`forceRefreshMatches_${user.uid}`, 'true');
+                 console.log("Swipe threshold reached! Forcing locked match refresh.");
+             }
+        }
     } catch (e) {
         console.error("Error updating daily stats:", e);
         Alert.alert("Debug Error", "Stats update failed: " + e.message);

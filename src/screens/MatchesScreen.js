@@ -45,8 +45,19 @@ export default function MatchesScreen() {
                   await AsyncStorage.setItem(visitedKey, 'true');
               }
 
+              // Check if force refresh is requested (from HomeScreen swipe threshold)
+              const refreshKey = `forceRefreshMatches_${user.uid}`;
+              const shouldForceRefresh = await AsyncStorage.getItem(refreshKey);
+              
+              if (shouldForceRefresh === 'true') {
+                  await AsyncStorage.removeItem(refreshKey);
+                  // Optionally trigger a visual refresh or state update if needed
+                  // But since we are re-evaluating locked logic here, it might be enough
+              }
+
               // Only show locked match if this is NOT the first visit (hasVisited was already true)
-              const shouldShowLocked = hasVisited === 'true';
+              // OR if we forced a refresh (meaning they swiped enough)
+              const shouldShowLocked = hasVisited === 'true' || shouldForceRefresh === 'true';
 
               if (isMounted) {
                   setShowLocked(shouldShowLocked);

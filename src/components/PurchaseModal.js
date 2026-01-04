@@ -23,11 +23,13 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
   const [selectedPlan, setSelectedPlan] = useState(PLANS[1]); // Default to Yearly
   const [availablePackages, setAvailablePackages] = useState({}); // Map of identifier -> package
   const [allPackages, setAllPackages] = useState([]); // Store all fetched packages for debug
+  const [errorMsg, setErrorMsg] = useState(null); // Store fetch error
   const { restorePurchases } = useAuth();
 
   useEffect(() => {
     if (visible) {
       setIsVisible(true);
+      setErrorMsg(null); // Reset error
       fetchOffering(); 
       Animated.spring(panY, {
         toValue: 0,
@@ -61,9 +63,15 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
       });
       
       setAvailablePackages(packageMap);
+      
+      if (packages.length === 0) {
+          setErrorMsg("No products found. Check configuration.");
+      }
+
     } catch (e) {
       console.log("Error fetching offerings:", e);
-      Alert.alert('Configuration Error', 'Failed to load subscription packages. Please check your internet connection or try again later.\n\nError: ' + e.message);
+      setErrorMsg(e.message || "Failed to load products");
+      // Alert.alert('Configuration Error', 'Failed to load subscription packages...');
     }
   };
   
@@ -195,10 +203,26 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                   <FeatureItem icon="ban" text="No Advertisement" />
                 </View>
 
+                {/* Error Message */}
+                {errorMsg && (
+                    <View style={styles.errorContainer}>
+                        <Ionicons name="warning" size={20} color="#FF3B30" />
+                        <Text style={styles.errorText}>
+                            {errorMsg.includes('configuration') 
+                                ? "Configuration Error: Google Play products not found." 
+                                : "Error loading products: " + errorMsg}
+                        </Text>
+                    </View>
+                )}
+
                 {/* Plans List - Vertical */}
                 <View style={styles.plansContainer}>
                     {PLANS.map((plan) => {
                       const isSelected = selectedPlan.id === plan.id;
+                      // Dynamic Price Lookup
+                      const realPackage = availablePackages[plan.id];
+                      const displayPrice = realPackage?.product?.priceString || (errorMsg ? "N/A" : "Loading...");
+                      
                       return (
                         <TouchableOpacity 
                           key={plan.id}
@@ -223,7 +247,7 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                                     </View>
                                   )}
                               </View>
-                              <Text style={styles.planPrice}>{plan.price}</Text>
+                              <Text style={styles.planPrice}>{displayPrice}</Text>
                           </View>
                           
                           <Text style={styles.planSubtitleRight}>{plan.subtitle}</Text>
@@ -236,8 +260,8 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                 <TouchableOpacity 
                   activeOpacity={0.9} 
                   onPress={handleRealPurchase}
-                  disabled={processing}
-                  style={styles.purchaseButtonWrapper}
+                  disabled={processing || !!errorMsg}
+                  style={[styles.purchaseButtonWrapper, (!!errorMsg) && { opacity: 0.5 }]}
                 >
                   <LinearGradient
                     colors={['#FF4D67', '#FF0055']}
@@ -374,6 +398,22 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: '600',
     flex: 1,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  errorText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    marginLeft: 8,
+    flex: 1,
+    fontWeight: '600',
   },
   plansContainer: {
     width: '100%',
