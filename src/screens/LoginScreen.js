@@ -33,6 +33,12 @@ export default function LoginScreen() {
 
   const onGoogle = async () => {
     try {
+      // Check if native module is available to prevent crash
+      if (!GoogleSignin) {
+        Alert.alert('Configuration Error', 'Google Sign-In native module is not linked. Please rebuild your development client.');
+        return;
+      }
+      
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       const { idToken } = userInfo.data || userInfo;
@@ -52,7 +58,12 @@ export default function LoginScreen() {
         Alert.alert('Error', 'Google Play Services not available');
       } else {
         console.error(error);
-        Alert.alert('Google Sign-In Error', error.message);
+        // If the error is about TurboModuleRegistry, it means the native module is missing
+        if (error.message && error.message.includes('TurboModuleRegistry')) {
+             Alert.alert('Build Required', 'You are running a version of the app that does not have the Google Sign-In plugin. Please run "eas build --profile development" again and install the NEW apk.');
+        } else {
+             Alert.alert('Google Sign-In Error', error.message);
+        }
       }
     }
   };

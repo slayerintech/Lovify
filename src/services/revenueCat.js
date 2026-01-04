@@ -46,7 +46,7 @@ class RevenueCatService {
       }
       
       // Debug logs (disable in production)
-      await Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
+      // await Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG); // Commented out to reduce noise
       this.isInitialized = true;
     } catch (e) {
       console.warn('RevenueCat init failed:', e);

@@ -12,7 +12,28 @@
           "package_name": "com.slayer.lovify"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1014322922040-ea2b4s94mv1q81bsrbsr8r0ld84vl2lq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.slayer.lovify",
+            "certificate_hash": "f9ded05f898452750b900381c20c3bffd2522175"
+          }
+        },
+        {
+          "client_id": "1014322922040-t8obvkhlknih04jv4fe4vpeu48s8s6kj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.slayer.lovify",
+            "certificate_hash": "efba2564e7cf33dd355d59c2509d072a602396e6"
+          }
+        },
+        {
+          "client_id": "1014322922040-18vqb0a00c7he05s0hjfpr4d1iagta2l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCjlSOVze7ksXzD2LDncD89Cofv3MlAwjM"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1014322922040-18vqb0a00c7he05s0hjfpr4d1iagta2l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
