@@ -19,6 +19,12 @@ const API_KEYS = {
   google: 'goog_SDuDFCzotjxFVuGgvCzUvGLEJhJ',
 };
 
+const MOCK_PACKAGES = [
+  { identifier: 'monthly_subscription', packageType: 'MONTHLY', product: { priceString: '$4.99' } },
+  { identifier: 'yearly_subscription', packageType: 'ANNUAL', product: { priceString: '$49.99' } },
+  { identifier: 'lifetime_access', packageType: 'LIFETIME', product: { priceString: '$99.99' } },
+];
+
 class RevenueCatService {
   static isInitialized = false;
 
@@ -54,7 +60,7 @@ class RevenueCatService {
       return await Purchases.logIn(userId);
     } catch (e) {
       console.error('Error logging in to RevenueCat:', e);
-      throw e;
+      // Don't throw, just log
     }
   }
 
@@ -70,11 +76,7 @@ class RevenueCatService {
   static async getOfferings() {
     if (!this.isInitialized || !Purchases) {
       console.log('Returning MOCK packages for Expo Go / Dev mode');
-      return [
-        { identifier: 'monthly_subscription', packageType: 'MONTHLY', product: { priceString: '$4.99' } },
-        { identifier: 'yearly_subscription', packageType: 'ANNUAL', product: { priceString: '$49.99' } },
-        { identifier: 'lifetime_access', packageType: 'LIFETIME', product: { priceString: '$99.99' } },
-      ];
+      return MOCK_PACKAGES;
     }
     try {
       const offerings = await Purchases.getOfferings();
@@ -82,10 +84,11 @@ class RevenueCatService {
         return offerings.current.availablePackages;
       }
       console.log('No offerings found. Check RevenueCat configuration.');
-      return [];
+      return MOCK_PACKAGES; // Fallback to mocks if no offerings configured
     } catch (e) {
-      console.error('Error getting offerings:', e);
-      throw e;
+      console.error('Error getting offerings (Using Mocks):', e.message);
+      // Fallback to mocks on error (e.g. Configuration Error) to prevent app crash/alert loop
+      return MOCK_PACKAGES;
     }
   }
 

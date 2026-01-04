@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur'; 
 import { LinearGradient } from 'expo-linear-gradient'; 
-import { collection, query, where, getDocs, doc, setDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc, setDoc, addDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import AdService from '../services/AdService';
@@ -139,16 +139,11 @@ export default function HomeScreen() {
     try {
         const today = new Date().toDateString();
         const statsRef = doc(db, 'users', user.uid, 'dailyStats', today);
-        const statsDoc = await getDoc(statsRef);
         
-        let newCount = 1;
-        if (statsDoc.exists()) {
-            newCount = (statsDoc.data().swipesCount || 0) + 1;
-            await setDoc(statsRef, { swipesCount: newCount }, { merge: true });
-        } else {
-            await setDoc(statsRef, { swipesCount: 1 });
-        }
-        console.log("Updated daily swipes count to:", newCount);
+        // Use increment for atomic updates to avoid race conditions
+        await setDoc(statsRef, { swipesCount: increment(1) }, { merge: true });
+        
+        console.log("Updated daily swipes count");
     } catch (e) {
         console.error("Error updating daily stats:", e);
         Alert.alert("Debug Error", "Stats update failed: " + e.message);

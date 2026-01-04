@@ -31,40 +31,36 @@ export default function MatchesScreen() {
           return;
       }
 
-      const checkSwipeStatus = async () => {
-          try {
-              const today = new Date().toDateString();
-              // Check daily stats from Firestore
-              const statsRef = doc(db, 'users', user.uid, 'dailyStats', today);
-              
-              // We use onSnapshot to listen for real-time updates to swipe count
-              const unsubscribe = onSnapshot(statsRef, (docSnap) => {
-                  if (docSnap.exists()) {
-                      const swipes = docSnap.data().swipesCount || 0;
-                      // Show locked match if user has swiped 5 or more times
-                      if (swipes >= 5) {
-                          setShowLocked(true);
-                      } else {
-                          setShowLocked(false);
-                      }
-                  } else {
-                      setShowLocked(false);
-                  }
-              });
+      let unsubscribe = null;
+      let isMounted = true;
 
-              return () => unsubscribe();
+      const setup = async () => {
+          try {
+              // Check if user has visited matches screen before
+              const visitedKey = `hasVisitedMatches_${user.uid}`;
+              const hasVisited = await AsyncStorage.getItem(visitedKey);
+              
+              // Mark as visited for NEXT time
+              if (hasVisited !== 'true') {
+                  await AsyncStorage.setItem(visitedKey, 'true');
+              }
+
+              // Only show locked match if this is NOT the first visit (hasVisited was already true)
+              const shouldShowLocked = hasVisited === 'true';
+
+              if (isMounted) {
+                  setShowLocked(shouldShowLocked);
+              }
           } catch (e) {
-              console.error("Error checking swipe status", e);
+              console.error("Error in MatchesScreen setup", e);
           }
       };
 
-      const unsubscribePromise = checkSwipeStatus();
+      setup();
       
-      // Cleanup function
       return () => {
-          unsubscribePromise.then(unsubscribe => {
-              if (unsubscribe) unsubscribe();
-          });
+          isMounted = false;
+          if (unsubscribe) unsubscribe();
       };
     }, [user, userData])
   );

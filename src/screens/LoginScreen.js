@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';import * as Google from 'expo-auth-session/providers/google';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ImageBackground } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-import Constants from 'expo-constants';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { GlassButton } from '../components/GlassButton';
 import { GlassInput } from '../components/GlassInput';
 import { COLORS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
+
+// Ensure WebBrowser completes the session
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [isSignup, setIsSignup] = useState(false);
@@ -24,50 +26,33 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  WebBrowser.maybeCompleteAuthSession();
-  const isDev = __DEV__;
-  const ANDROID_CLIENT_ID = '1014322922040-t8obvkhlknih04jv4fe4vpeu48s8s6kj.apps.googleusercontent.com'; // add your Android client ID here for production builds
+  // Client IDs
   const WEB_CLIENT_ID = '1014322922040-18vqb0a00c7he05s0hjfpr4d1iagta2l.apps.googleusercontent.com';
-  
+  // Note: For native Google Sign-In (system picker), you need a valid Android Client ID in google-services.json
+  // and use the @react-native-google-signin/google-signin library.
+  // Currently falling back to expo-auth-session to prevent crashes if native module is missing.
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: WEB_CLIENT_ID,
+    androidClientId: WEB_CLIENT_ID, // Using Web Client ID to prevent "must be defined" error
+  });
+
   useEffect(() => {
     if (response?.type === 'success') {
       const { id_token } = response.params;
       const credential = GoogleAuthProvider.credential(id_token);
-      signInWithCredential(auth, credential).catch(error => {
-        Alert.alert('Login Error', error.message);
-      });
+      signInWithCredential(auth, credential)
+        .catch((error) => {
+          Alert.alert('Login Error', error.message);
+        });
+    } else if (response?.type === 'error') {
+      Alert.alert('Google Sign-In Error', response.error?.message || 'Something went wrong');
     }
   }, [response]);
 
-  // In Expo Go, we use the Web Client ID for the Android Client ID prop to satisfy the library requirement
-  // and ensure the request uses a Client ID that supports the redirect URI.
-  const redirectUri = makeRedirectUri({
-    scheme: 'lovify',
-  });
-
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: isDev ? WEB_CLIENT_ID : ANDROID_CLIENT_ID,
-    webClientId: WEB_CLIENT_ID,
-    redirectUri,
-    scopes: ['profile', 'email'],
-  });
-
   const onGoogle = async () => {
     try {
-      if (ANDROID_CLIENT_ID === 'your-android-client-id') {
-         Alert.alert('Configuration Error', 'Please set your Android Client ID in LoginScreen.js');
-         return;
-      }
-      
-      const result = await promptAsync();
-      
-      if (result?.type !== 'success') {
-        if (result?.type === 'error') {
-           Alert.alert('Google Sign-In Error', result.error?.message || 'Something went wrong');
-        }
-        return;
-      }
-      // The useEffect will handle the success case
+      await promptAsync();
     } catch (err) {
       console.error(err);
       Alert.alert('Error', err.message);
