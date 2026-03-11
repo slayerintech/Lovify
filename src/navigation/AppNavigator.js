@@ -108,7 +108,7 @@ export default function AppNavigator() {
       >
         {!user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
-        ) : !userData ? (
+        ) : (!userData || !userData.name || !userData.photo) ? (
           <Stack.Screen name="CreateProfile" component={CreateProfileScreen} />
         ) : (
           <>

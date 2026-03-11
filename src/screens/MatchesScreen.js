@@ -5,7 +5,7 @@ import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../services/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import StorageService from '../services/StorageService';
 import { AppHeader } from '../components/AppHeader';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { BlurView } from 'expo-blur';
@@ -37,27 +37,23 @@ export default function MatchesScreen() {
       const setup = async () => {
           try {
               // Check if user has visited matches screen before
-              const visitedKey = `hasVisitedMatches_${user.uid}`;
-              const hasVisited = await AsyncStorage.getItem(visitedKey);
+              const hasVisited = await StorageService.getHasVisitedMatches(user.uid);
               
               // Mark as visited for NEXT time
               if (hasVisited !== 'true') {
-                  await AsyncStorage.setItem(visitedKey, 'true');
+                  await StorageService.setHasVisitedMatches(user.uid);
               }
 
               // Check if force refresh is requested (from HomeScreen swipe threshold)
-              const refreshKey = `forceRefreshMatches_${user.uid}`;
-              const shouldForceRefresh = await AsyncStorage.getItem(refreshKey);
+              const shouldForceRefresh = await StorageService.getForceRefreshMatches(user.uid);
               
-              if (shouldForceRefresh === 'true') {
-                  await AsyncStorage.removeItem(refreshKey);
-                  // Optionally trigger a visual refresh or state update if needed
-                  // But since we are re-evaluating locked logic here, it might be enough
+              if (shouldForceRefresh) {
+                  await StorageService.setForceRefreshMatches(user.uid, false); // Reset
               }
 
               // Only show locked match if this is NOT the first visit (hasVisited was already true)
               // OR if we forced a refresh (meaning they swiped enough)
-              const shouldShowLocked = hasVisited === 'true' || shouldForceRefresh === 'true';
+              const shouldShowLocked = hasVisited === 'true' || shouldForceRefresh;
 
               if (isMounted) {
                   setShowLocked(shouldShowLocked);

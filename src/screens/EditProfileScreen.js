@@ -209,6 +209,12 @@ export default function EditProfileScreen({ navigation }) {
                 {photo ? (
                   <View style={styles.fullSize}>
                     <Image source={{ uri: photo }} style={styles.photo} />
+                    <TouchableOpacity style={styles.editPhotoBtn} onPress={pickImage}>
+                      <BlurView intensity={80} tint="dark" style={styles.editPhotoBlur}>
+                        <Ionicons name="camera" size={20} color="#fff" />
+                        <Text style={styles.editPhotoText}>Change</Text>
+                      </BlurView>
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.removeBtn} onPress={removePhoto}>
                       <Ionicons name="close-circle" size={24} color="#FF2D55" />
                     </TouchableOpacity>
@@ -357,6 +363,9 @@ const styles = StyleSheet.create({
   addPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   addPhotoText: { color: 'rgba(255,255,255,0.3)', marginTop: 10, fontSize: 14, fontWeight: '600' },
   removeBtn: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12 },
+  editPhotoBtn: { position: 'absolute', bottom: 10, alignSelf: 'center', width: '80%' },
+  editPhotoBlur: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 15, overflow: 'hidden' },
+  editPhotoText: { color: '#fff', fontSize: 12, fontWeight: '700', marginLeft: 6 },
 
   // Glass Grouping Styles
   glassGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)', paddingVertical: 5 },

@@ -43,7 +43,7 @@ class AdService {
 
   static loadChatAd() {
     const interstitial = InterstitialAd.createForAdRequest(AD_UNITS.CHAT_INTERSTITIAL, {
-      requestNonPersonalizedAdsOnly: true,
+      requestNonPersonalizedAdsOnly: false,
     });
 
     interstitial.addAdEventListener(AdEventType.LOADED, () => {
@@ -59,7 +59,7 @@ class AdService {
       this.loadChatAd();
     });
 
-    interstitial.addAdEventListener('error', (error) => {
+    interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
       console.log('Chat Interstitial Ad Load Error:', error);
       this.isChatAdLoaded = false;
       this.chatAd = null;
@@ -70,7 +70,7 @@ class AdService {
 
   static loadSaveProfileAd() {
     const interstitial = InterstitialAd.createForAdRequest(AD_UNITS.SAVE_PROFILE_INTERSTITIAL, {
-      requestNonPersonalizedAdsOnly: true,
+      requestNonPersonalizedAdsOnly: false,
     });
 
     interstitial.addAdEventListener(AdEventType.LOADED, () => {
@@ -86,7 +86,7 @@ class AdService {
       this.loadSaveProfileAd();
     });
 
-    interstitial.addAdEventListener('error', (error) => {
+    interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
       console.log('Save Profile Interstitial Ad Load Error:', error);
       this.isSaveProfileAdLoaded = false;
       this.saveProfileAd = null;
@@ -97,7 +97,7 @@ class AdService {
 
   static loadSwipeAd() {
     const interstitial = InterstitialAd.createForAdRequest(AD_UNITS.SWIPE_INTERSTITIAL, {
-      requestNonPersonalizedAdsOnly: true,
+      requestNonPersonalizedAdsOnly: false,
     });
 
     interstitial.addAdEventListener(AdEventType.LOADED, () => {
@@ -113,7 +113,7 @@ class AdService {
       this.loadSwipeAd();
     });
 
-    interstitial.addAdEventListener('error', (error) => {
+    interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
       console.log('Swipe Interstitial Ad Load Error:', error);
       this.isSwipeAdLoaded = false;
       this.swipeAd = null;
@@ -124,26 +124,34 @@ class AdService {
 
   static async showSaveProfileAd() {
     if (this.isPremium) return; // Skip if premium
-    if (this.isSaveProfileAdLoaded && this.saveProfileAd) {
-      await this.saveProfileAd.show();
-    } else {
-      console.log('Save Profile Ad not ready yet');
-      this.loadSaveProfileAd();
+    try {
+        if (this.isSaveProfileAdLoaded && this.saveProfileAd) {
+          await this.saveProfileAd.show();
+        } else {
+          console.log('Save Profile Ad not ready yet');
+          this.loadSaveProfileAd();
+        }
+    } catch (e) {
+        console.error('Error showing Save Profile Ad:', e);
     }
   }
 
-  static async incrementSwipeCount() {
+  static async handleSwipe() {
     if (this.isPremium) return; // Skip if premium
     this.swipeCount++;
     console.log('Swipe count:', this.swipeCount);
     
     if (this.swipeCount >= 5) {
-      if (this.isSwipeAdLoaded && this.swipeAd) {
-        await this.swipeAd.show();
-        this.swipeCount = 0;
-      } else {
-        console.log('Swipe Ad not ready yet');
-        this.loadSwipeAd();
+      try {
+          if (this.isSwipeAdLoaded && this.swipeAd) {
+            await this.swipeAd.show();
+            this.swipeCount = 0;
+          } else {
+            console.log('Swipe Ad not ready yet');
+            this.loadSwipeAd();
+          }
+      } catch (e) {
+          console.error('Error showing Swipe Ad:', e);
       }
     }
   }
@@ -169,7 +177,7 @@ class AdService {
           unitId={adUnitId}
           size={BannerAdSize.BANNER}
           requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
+            requestNonPersonalizedAdsOnly: false,
           }}
         />
       </View>
@@ -185,7 +193,7 @@ export function MatchesBanner() {
         unitId={AD_UNITS.MATCHES_BANNER}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
-          requestNonPersonalizedAdsOnly: true,
+          requestNonPersonalizedAdsOnly: false,
         }}
       />
     </View>
@@ -199,7 +207,7 @@ export function ChatsBanner() {
         unitId={AD_UNITS.CHATS_BANNER}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
-          requestNonPersonalizedAdsOnly: true,
+          requestNonPersonalizedAdsOnly: false,
         }}
       />
     </View>

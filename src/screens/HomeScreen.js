@@ -17,7 +17,7 @@ import { INTERESTS_LIST } from '../data/constants';
 import { getLocalImage } from '../utils/imageMap';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import StorageService from '../services/StorageService';
 
 const { width, height } = Dimensions.get('window');
 const GAP = 10;
@@ -155,7 +155,7 @@ export default function HomeScreen() {
              
              // Force refresh logic for testing locked match
              if (currentCount >= 3) {
-                 await AsyncStorage.setItem(`forceRefreshMatches_${user.uid}`, 'true');
+                 await StorageService.setForceRefreshMatches(user.uid, true);
                  console.log("Swipe threshold reached! Forcing locked match refresh.");
              }
         }
