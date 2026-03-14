@@ -125,6 +125,13 @@ export default function EditProfileScreen({ navigation }) {
     if (!name) missing.push('Name');
     if (!age) missing.push('Age');
     if (!photo) missing.push('Profile Photo');
+    
+    // Bio validation: at least 20 characters, no empty spaces
+    const cleanBio = bio.trim();
+    if (!cleanBio || cleanBio.length < 20) {
+      missing.push('Bio (at least 20 characters)');
+    }
+
     if (!gender) missing.push('Gender (I am a...)');
     if (!interestedIn) missing.push('Interested In');
     if (!lookingFor) missing.push('Looking For');

@@ -1,5 +1,19 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity, Easing, Platform, StatusBar, ScrollView, Dimensions, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Animated,
+  TouchableOpacity,
+  Easing,
+  Platform,
+  StatusBar,
+  ScrollView,
+  Dimensions,
+  Alert,
+  AppState
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur'; 
@@ -70,14 +84,6 @@ export default function HomeScreen() {
   // Get current top profile for details view
   const currentProfile = profiles.length > 0 ? profiles[profiles.length - 1] : null;
 
-  useEffect(() => {
-    // startHeartbeat();
-  }, []);
-
-  useEffect(() => {
-    fetchProfiles();
-  }, [user]);
-
   const fetchProfiles = async (reset = false) => {
     if (!user || !userData) return;
     try {
@@ -118,13 +124,31 @@ export default function HomeScreen() {
         })
         .filter(profile => !passedUserIds.includes(profile.id));
 
-      // Sort profiles: Dummy users first (top of stack)
+      // 1. First, Shuffle all profiles randomly
+      for (let i = fetchedProfiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fetchedProfiles[i], fetchedProfiles[j]] = [fetchedProfiles[j], fetchedProfiles[i]];
+      }
+
+      // 2. Then, Apply Priority Sort (Preferred gender first)
+      // Since we already shuffled, users within the same priority will stay in random order
       fetchedProfiles.sort((a, b) => {
+        const preferredGender = userData.gender === 'Male' ? 'Female' : (userData.gender === 'Female' ? 'Male' : null);
+        
+        // Priority 1: Preferred Gender
+        const isAPreferred = preferredGender && a.gender === preferredGender;
+        const isBPreferred = preferredGender && b.gender === preferredGender;
+
+        if (isAPreferred && !isBPreferred) return 1; // a is placed after b (top of stack)
+        if (!isAPreferred && isBPreferred) return -1;
+
+        // Priority 2: Dummy Users (if gender is same or neither is preferred)
         const isADummy = a.id.toString().startsWith('dummy_');
         const isBDummy = b.id.toString().startsWith('dummy_');
 
-        if (isADummy && !isBDummy) return 1; // Dummy (a) > Real (b) -> a is placed after b (top of stack)
-        if (!isADummy && isBDummy) return -1; // Real (a) < Dummy (b) -> a is placed before b
+        if (isADummy && !isBDummy) return 1;
+        if (!isADummy && isBDummy) return -1;
+
         return 0;
       });
 
@@ -135,6 +159,27 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
+
+  // Use useFocusEffect to refresh profiles every time the user enters the Home screen
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfiles();
+    }, [user, userData]) // Re-fetch if user/userData changes or on focus
+  );
+
+  useEffect(() => {
+    // Listener for app state changes (foreground/background)
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        console.log('App has come to the foreground, refreshing profiles...');
+        fetchProfiles();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user, userData]); // Re-subscribe if user info changes
 
   const updateDailySwipes = async () => {
     if (userData?.isPremium) return;
@@ -200,8 +245,8 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      {/* iOS Futuristic Mesh Gradient Background */}
-      <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
+      {/* Mesh Gradient Background - Simplified to solid black at the bottom */}
+      <LinearGradient colors={['#0f0f0f', '#000000', '#000000']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
         
@@ -235,8 +280,8 @@ export default function HomeScreen() {
                 <BlurView intensity={20} tint="light" style={styles.emptyCircle}>
                    <Ionicons name="diamond-outline" size={50} color={THEME.accent} />
                 </BlurView>
-                <Text style={styles.noMoreText}>You've seen everyone!</Text>
-                <Text style={styles.subText}>Upgrade to Premium to see more people and get unlimited swipes.</Text>
+                <Text style={styles.noMoreText}>Unlock More Profiles!</Text>
+                <Text style={styles.subText}>Get Lovify Premium to discover more people and enjoy unlimited swipes.</Text>
                 <TouchableOpacity 
                   activeOpacity={0.9}
                   onPress={handlePurchase}
@@ -402,22 +447,24 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   cardsContainer: {
-    height: height * 0.75,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
+      height: height * 0.72,
+      width: width,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 10, // Added small margin to show top corner radius
+    },
   scrollView: {
     flex: 1,
+    marginBottom: Platform.OS === 'ios' ? 105 : 83,
   },
   scrollContent: {
     flexGrow: 1,
   },
   detailsContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 40,
+    paddingTop: 0, // Removed top padding to bring details closer to the card
+    paddingBottom: 110,
+    marginTop: -10, // Pull up details slightly to overlap with card's bottom gradient area
   },
   infoSection: {
     marginBottom: 20,

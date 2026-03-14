@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, StatusBar, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, StatusBar, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -9,7 +9,6 @@ import { AppHeader } from '../components/AppHeader';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { BannerAd, BannerAdSize, TestIds } from '../utils/AdMob';
 import AdService, { ChatsBanner } from '../services/AdService';
 
 export default function ChatsScreen() {
@@ -127,15 +126,15 @@ export default function ChatsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
         <AppHeader style={styles.header} />
-        <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20 }}>
-          <ChatsBanner />
-        </View>
         
-        <ScrollView contentContainerStyle={{ paddingTop: 0 }}>
+        <ScrollView 
+          contentContainerStyle={{ paddingTop: 60 }}
+          style={{ marginBottom: Platform.OS === 'ios' ? 105 : 83 }} // Reduced to bring it closer to TabBar
+        >
           {matches.length > 0 && renderNewMatches()}
 
           <FlatList
@@ -218,7 +217,7 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 10,
     paddingTop: 10,
-    paddingBottom: 100,
+    paddingBottom: 110, // Increased to stop content before TabBar
     flexGrow: 1,
   },
   chatCardWrapper: {

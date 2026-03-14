@@ -172,13 +172,15 @@ class AdService {
     const adUnitId = type === 'CHATS' ? AD_UNITS.CHATS_BANNER : AD_UNITS.MATCHES_BANNER;
 
     return (
-      <View style={{ alignItems: 'center', marginVertical: 10 }}>
+      <View style={{ alignItems: 'center', marginVertical: 10, width: '100%', height: 60, justifyContent: 'center', backgroundColor: 'transparent' }}>
         <BannerAd
           unitId={adUnitId}
           size={BannerAdSize.BANNER}
           requestOptions={{
             requestNonPersonalizedAdsOnly: false,
           }}
+          onAdFailedToLoad={(error) => console.log(`${type} Banner Ad Load Error:`, error)}
+          onAdLoaded={() => console.log(`${type} Banner Ad Loaded`)}
         />
       </View>
     );
@@ -187,28 +189,36 @@ class AdService {
 
 // Banner Component helper
 export function MatchesBanner() {
+  if (AdService.isPremium) return null;
+
   return (
-    <View style={{ alignItems: 'center', width: '100%' }}>
+    <View style={{ alignItems: 'center', width: '100%', height: 60, justifyContent: 'center', backgroundColor: 'transparent' }}>
       <BannerAd
         unitId={AD_UNITS.MATCHES_BANNER}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        size={BannerAdSize.BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: false,
         }}
+        onAdFailedToLoad={(error) => console.log('Matches Banner Ad Load Error:', error)}
+        onAdLoaded={() => console.log('Matches Banner Ad Loaded')}
       />
     </View>
   );
 }
 
 export function ChatsBanner() {
+  if (AdService.isPremium) return null;
+
   return (
-    <View style={{ alignItems: 'center', width: '100%' }}>
+    <View style={{ alignItems: 'center', width: '100%', height: 60, justifyContent: 'center', backgroundColor: 'transparent' }}>
       <BannerAd
         unitId={AD_UNITS.CHATS_BANNER}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        size={BannerAdSize.BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: false,
         }}
+        onAdFailedToLoad={(error) => console.log('Chats Banner Ad Load Error:', error)}
+        onAdLoaded={() => console.log('Chats Banner Ad Loaded')}
       />
     </View>
   );

@@ -149,8 +149,6 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
     const threshold = width * 0.25;
     
     // Calculate intensity based on swipe distance
-    // 0 -> 0 (transparent)
-    // threshold -> 1 (full color)
     const intensity = interpolate(
       Math.abs(translateX.value),
       [0, threshold],
@@ -162,34 +160,36 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
     const isRight = translateX.value > 0;
     
     // Default border color when intensity is near 0
-    const defaultBorderColor = 'rgba(255, 255, 255, 0.15)'; // Match THEME.glassBorder
+    const defaultBorderColor = 'rgba(255, 255, 255, 0.15)'; 
     
     if (intensity < 0.05) {
         return {
             borderColor: defaultBorderColor,
-            borderWidth: 1, // Default border width
+            borderWidth: 1,
+            borderBottomWidth: 0, 
         };
     }
 
-    const borderColor = isRight ? 'rgba(50, 215, 75, ' : 'rgba(255, 69, 58, '; // Green or Red
+    const borderColor = isRight ? 'rgba(50, 215, 75, ' : 'rgba(255, 69, 58, '; 
     
     return {
       borderColor: `${borderColor}${intensity})`,
       borderWidth: interpolate(Math.abs(translateX.value), [0, 50], [1, 4], Extrapolate.CLAMP),
+      borderBottomWidth: 0, 
     };
   });
 
   const likeOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [0, width / 4], [0, 1]),
+    opacity: interpolate(translateX.value, [0, width / 10], [0, 1], Extrapolate.CLAMP),
   }));
 
   const nopeOpacity = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [-width / 4, 0], [1, 0]),
+    opacity: interpolate(translateX.value, [-width / 10, 0], [1, 0], Extrapolate.CLAMP),
   }));
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View style={[styles.card, animatedStyle, borderStyle]}>
+      <Animated.View style={[styles.card, animatedStyle]}>
         {/* Full Screen Image */}
         <View style={StyleSheet.absoluteFill}>
           <Image 
@@ -206,9 +206,13 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
           )}
         </View>
         
-        {/* Gradient Overlay */}
+        {/* Border Layer (Top and partial sides only) */}
+        <Animated.View style={[styles.borderLayer, borderStyle]} />
+
+        {/* Gradient Overlay for blending */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)', '#000000']}
+          locations={[0, 0.4, 0.8, 1]}
           style={styles.gradient}
         />
 
@@ -230,9 +234,10 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
 
 const styles = StyleSheet.create({
   card: {
-    width: width * 0.9,
-    height: height * 0.7,
-    borderRadius: 20,
+    width: width, 
+    height: height * 0.72,
+    borderTopLeftRadius: 35, // Rounded top corners
+    borderTopRightRadius: 35,
     backgroundColor: '#1a1a1a',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -242,8 +247,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  borderLayer: {
+    ...StyleSheet.absoluteFillObject,
+    height: '60%', 
+    borderTopLeftRadius: 35, // Match card radius
+    borderTopRightRadius: 35,
+    zIndex: 5,
+    pointerEvents: 'none',
   },
   image: {
     ...StyleSheet.absoluteFillObject,
@@ -260,16 +271,16 @@ const styles = StyleSheet.create({
   },
   gradient: {
     position: 'absolute',
-    bottom: 0,
+    bottom: -1, // Overlap slightly with the card bottom to avoid a gap
     left: 0,
     right: 0,
-    height: '30%',
+    height: '45%', // Taller gradient for better blending
     zIndex: 1,
     pointerEvents: 'none',
   },
   cardInfo: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30, // Slightly higher to be well-placed within the gradient
     left: 20,
     zIndex: 2,
   },
@@ -283,35 +294,41 @@ const styles = StyleSheet.create({
   },
   likeLabel: {
     position: 'absolute',
-    top: 50,
+    top: 100, // Lowered to be visible below header
     left: 40,
     transform: [{ rotate: '-30deg' }],
-    borderWidth: 4,
+    borderWidth: 6, // Thicker border
     borderColor: COLORS.success,
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 12, // More rounded like modern Tinder
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Semi-transparent background to pop
     zIndex: 100,
   },
   likeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 48, // Much larger
+    fontWeight: '900', // Heavier weight
     color: COLORS.success,
+    textTransform: 'uppercase',
   },
   nopeLabel: {
     position: 'absolute',
-    top: 50,
+    top: 100, // Lowered
     right: 40,
     transform: [{ rotate: '30deg' }],
-    borderWidth: 4,
+    borderWidth: 6,
     borderColor: COLORS.error,
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     zIndex: 100,
   },
   nopeText: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 48,
+    fontWeight: '900',
     color: COLORS.error,
+    textTransform: 'uppercase',
   },
 });
 

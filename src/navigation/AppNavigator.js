@@ -36,16 +36,17 @@ function MainTabs() {
         tabBarBackground: GlassTabBarBackground,
         tabBarStyle: {
           position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 30 : 8,
-          left: 25,
-          right: 25,
-          height: 70, // Slightly increased for better balance
+          bottom: Platform.OS === 'ios' ? 45 : 23,
+          left: 10,
+          right: 10,
+          paddingHorizontal: 10,
+          height: 70,
           borderRadius: 35,
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          backgroundColor: 'rgba(255, 255, 255, 0.03)', // Reverted to semi-transparent
           borderTopWidth: 0,
           borderWidth: 1,
           borderColor: 'rgba(255, 255, 255, 0.12)',
-          elevation: 0,
+          elevation: 0, // Reverted to 0
           overflow: 'hidden',
         },
         tabBarActiveTintColor: '#FF2D55',

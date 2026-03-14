@@ -151,20 +151,18 @@ export default function MatchesScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#000', '#0a0a0a', '#121212']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
         <AppHeader style={styles.header} />
-        <View style={{ paddingTop: 60, alignItems: 'center', paddingBottom: 20, width: '100%' }}>
-          <MatchesBanner />
-        </View>
         
         <FlatList
           data={data}
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
-          contentContainerStyle={[styles.list, { paddingTop: 10 }]}
+          style={{ marginBottom: Platform.OS === 'ios' ? 105 : 83 }} // Reduced to bring it closer to TabBar
+          contentContainerStyle={[styles.list, { paddingTop: 60 }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<Text style={styles.sectionTitle}>Your Matches</Text>}
           ListEmptyComponent={
@@ -210,7 +208,7 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 100, // For TabBar space
+    paddingBottom: 110, // Increased to stop content before TabBar
     flexGrow: 1,
   },
   sectionTitle: {

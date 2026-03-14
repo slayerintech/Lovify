@@ -116,7 +116,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#000000', '#121212']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       {/* <SafeAreaView style={styles.safeArea}> */}
         
@@ -127,7 +127,17 @@ export default function ProfileScreen() {
             <View style={styles.profileRow}>
               {/* Profile Picture */}
               <View style={styles.avatarContainer}>
-                <Image source={{ uri: userData.photo || (userData.photos && userData.photos[0]) }} style={styles.avatar} />
+                {userData.photo || (userData.photos && userData.photos[0]) ? (
+                  <Image 
+                    source={{ uri: userData.photo || (userData.photos && userData.photos[0]) }} 
+                    style={styles.avatar} 
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.avatar, styles.placeholderAvatar]}>
+                    <Ionicons name="person" size={40} color="rgba(255,255,255,0.2)" />
+                  </View>
+                )}
                 <View style={styles.onlineIndicator} />
               </View>
 
@@ -243,18 +253,6 @@ export default function ProfileScreen() {
                   <Text style={[styles.upgradeButtonText, { color: '#fff' }]}>LOGOUT</Text>
                </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleDeleteAccount} activeOpacity={0.9}>
-               <LinearGradient 
-                  colors={['#FF3B30', '#FF0000']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.upgradeButton, { flexDirection: 'row', gap: 10, justifyContent: 'center' }]}
-               >
-                  <Ionicons name="trash-outline" size={22} color="#fff" />
-                  <Text style={[styles.upgradeButtonText, { color: '#fff' }]}>DELETE ACCOUNT</Text>
-               </LinearGradient>
-            </TouchableOpacity>
           </View>
 
         </ScrollView>
@@ -357,6 +355,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  placeholderAvatar: {
+    backgroundColor: '#1c1c1e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
 
   // Premium Card Styles
