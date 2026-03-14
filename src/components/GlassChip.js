@@ -5,12 +5,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 
-export const GlassChip = ({ label, icon, selected, onPress, style, gradientColors = ['#FF2D55', '#FF6B8B'] }) => {
+export const GlassChip = ({ 
+  label, 
+  icon, 
+  selected, 
+  onPress, 
+  style, 
+  gradientColors = ['#FF2D55', '#FF6B8B'],
+  borderColor = 'rgba(255,255,255,0.1)'
+}) => {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [
       styles.container,
       style,
-      { opacity: pressed ? 0.8 : 1 }
+      { 
+        opacity: pressed ? 0.8 : 1,
+        borderColor: selected ? (borderColor !== 'rgba(255,255,255,0.1)' ? borderColor : 'rgba(255,255,255,0.2)') : borderColor,
+        borderWidth: 1
+      }
     ]}>
       {selected ? (
         <LinearGradient
@@ -39,13 +51,6 @@ export const GlassChip = ({ label, icon, selected, onPress, style, gradientColor
           {label}
         </Text>
       </View>
-      
-      {!selected && (
-        <LinearGradient
-          colors={['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.05)']}
-          style={styles.border}
-        />
-      )}
     </Pressable>
   );
 };
@@ -60,8 +65,6 @@ const styles = StyleSheet.create({
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
   content: {
     flexDirection: 'row',
@@ -81,15 +84,5 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginTop: -1,
-  },
-  border: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
   },
 });

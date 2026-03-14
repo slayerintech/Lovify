@@ -216,8 +216,19 @@ export const TinderCard = React.memo(forwardRef(({ user, active, onSwipeLeft, on
           style={styles.gradient}
         />
 
-        <View style={styles.cardInfo}>
-          <Text style={styles.name}>{user.name}, {user.age}</Text>
+        {/* Full Width Horizontal Info Section - Right Aligned */}
+        <View style={styles.cardInfoSection}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{user.name}, {user.age}</Text>
+          </View>
+          
+          {user.bio ? (
+            <View style={styles.bioContainer}>
+              <Text numberOfLines={1} style={styles.bioText}>
+                {user.bio}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <Animated.View style={[styles.likeLabel, likeOpacity]}>
@@ -278,19 +289,45 @@ const styles = StyleSheet.create({
     zIndex: 1,
     pointerEvents: 'none',
   },
-  cardInfo: {
+  cardInfoSection: {
     position: 'absolute',
-    bottom: 30, // Slightly higher to be well-placed within the gradient
+    bottom: 40,
     left: 20,
-    zIndex: 2,
+    right: 20,
+    zIndex: 10,
+    alignItems: 'flex-end', // Align all children to the right
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end', // Push to right
+    marginBottom: 8,
   },
   name: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: 'bold',
     color: COLORS.white,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+    textAlign: 'right',
+  },
+  bioContainer: {
+    alignSelf: 'flex-end', // Expand to left
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    maxWidth: '100%',
+  },
+  bioText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontStyle: 'italic',
+    lineHeight: 18,
+    textAlign: 'right',
   },
   likeLabel: {
     position: 'absolute',

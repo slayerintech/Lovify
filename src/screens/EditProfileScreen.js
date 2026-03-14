@@ -172,23 +172,57 @@ export default function EditProfileScreen({ navigation }) {
     }
   };
 
-  const renderGridOption = (option, selectedValue, onSelect) => (
-    <TouchableOpacity 
-      key={option.label} 
-      style={[styles.gridOption, selectedValue === option.label && styles.gridOptionSelected]} 
-      onPress={() => onSelect(option.label)}
-    >
-      <Ionicons 
-        name={option.icon} 
-        size={24} 
-        color={selectedValue === option.label ? '#FF2D55' : 'rgba(255, 45, 85, 0.5)'} 
-        style={{ marginBottom: 5 }} 
-      />
-      <Text style={[styles.gridOptionText, selectedValue === option.label && styles.gridOptionTextSelected]}>
-        {option.label}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderGridOption = (option, selectedValue, onSelect, color = '#FF2D55', isFullWidth = false, index = 0) => {
+    const isSelected = selectedValue === option.label;
+    const isRightAligned = isFullWidth && index % 2 !== 0;
+    
+    return (
+      <TouchableOpacity
+        key={option.label}
+        activeOpacity={0.8}
+        onPress={() => onSelect(option.label)}
+        style={{ 
+          width: isFullWidth ? '100%' : '48%', 
+          marginBottom: 6, // Reduced from 12 to 6
+        }}
+      >
+        <View style={[
+          styles.optionCapsule, 
+          isSelected && {
+            borderWidth: 1.5, 
+            borderColor: color + '66', 
+            backgroundColor: color + '1A' 
+          },
+          isFullWidth && { maxWidth: '85%', alignSelf: isRightAligned ? 'flex-end' : 'flex-start' }
+        ]}>
+          <BlurView intensity={isSelected ? 40 : 10} tint="dark" style={{ overflow: 'hidden', borderRadius: 20 }}>
+            <LinearGradient
+              colors={isSelected ? [color + '33', color + '0D'] : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ paddingHorizontal: 15, paddingVertical: 12 }}
+            >
+              <View style={{flexDirection: isRightAligned ? 'row-reverse' : 'row', alignItems: 'center'}}>
+                <Ionicons 
+                  name={option.icon} 
+                  size={24} 
+                  color={isSelected ? color : 'rgba(255,255,255,0.4)'} 
+                  style={isRightAligned ? { marginLeft: 12 } : { marginRight: 12 }} 
+                />
+                <Text style={[
+                  styles.optionText, 
+                  isSelected && { color: '#fff', fontWeight: '800' },
+                  { textAlign: isRightAligned ? 'right' : 'left' }
+                ]}>
+                  {option.label}
+                </Text>
+              </View>
+            </LinearGradient>
+          </BlurView>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -290,43 +324,45 @@ export default function EditProfileScreen({ navigation }) {
           </BlurView>
 
           {/* Gender Section */}
-          <Text style={styles.sectionTitle}>I am a</Text>
-          <View style={styles.gridContainer}>
-            {GENDER_OPTIONS.map(opt => renderGridOption(opt, gender, setGender))}
-          </View>
+            <Text style={styles.sectionTitle}>I am a</Text>
+            <View style={styles.gridContainer}>
+              {GENDER_OPTIONS.map(opt => renderGridOption(opt, gender, setGender, '#0A84FF'))}
+            </View>
 
-          {/* Interested In Section */}
-          <Text style={styles.sectionTitle}>Interested In</Text>
-          <View style={styles.gridContainer}>
-            {INTERESTED_IN_OPTIONS.map(opt => renderGridOption(opt, interestedIn, setInterestedIn))}
-          </View>
+            {/* Interested In Section */}
+            <Text style={styles.sectionTitle}>Interested In</Text>
+            <View style={styles.gridContainer}>
+              {INTERESTED_IN_OPTIONS.map(opt => renderGridOption(opt, interestedIn, setInterestedIn, '#AF52DE'))}
+            </View>
 
-          {/* Looking For Section */}
-          <Text style={styles.sectionTitle}>Looking For</Text>
-          <View style={styles.gridContainer}>
-            {LOOKING_FOR_OPTIONS.map(opt => renderGridOption(opt, lookingFor, setLookingFor))}
-          </View>
+            {/* Looking For Section */}
+            <Text style={styles.sectionTitle}>Looking For</Text>
+            <View style={[styles.gridContainer, { flexDirection: 'column' }]}>
+              {LOOKING_FOR_OPTIONS.map((opt, idx) => renderGridOption(opt, lookingFor, setLookingFor, '#FF2D55', true, idx))}
+            </View>
 
-          {/* Religion Section */}
-          <Text style={styles.sectionTitle}>Religion</Text>
-          <View style={styles.gridContainer}>
-            {RELIGION_OPTIONS.map(opt => renderGridOption(opt, religion, setReligion))}
-          </View>
+            {/* Religion Section */}
+            <Text style={styles.sectionTitle}>Religion</Text>
+            <View style={styles.gridContainer}>
+              {RELIGION_OPTIONS.map(opt => renderGridOption(opt, religion, setReligion, '#32D74B'))}
+            </View>
 
-          {/* Interests Section */}
-          <Text style={styles.sectionTitle}>Interests</Text>
-          <View style={styles.interestsContainer}>
-              {INTERESTS_LIST.map((item) => (
-                  <GlassChip 
-                    key={item.label} 
-                    label={item.label} 
-                    icon={item.icon}
-                    selected={interests.includes(item.label)} 
-                    onPress={() => toggleInterest(item.label)} 
-                    style={{ width: '48%', marginRight: 0, marginBottom: 0 }}
-                  />
-              ))}
-          </View>
+            {/* Interests Section */}
+            <Text style={styles.sectionTitle}>Interests</Text>
+            <View style={styles.interestsContainer}>
+                {INTERESTS_LIST.map((item) => (
+                    <GlassChip 
+                      key={item.label} 
+                      label={item.label} 
+                      icon={item.icon}
+                      selected={interests.includes(item.label)} 
+                      onPress={() => toggleInterest(item.label)} 
+                      style={{ width: (width - 50) / 2, marginRight: 0, marginBottom: 0, height: 48, borderRadius: 16 }}
+                      gradientColors={interests.includes(item.label) ? ['#FF2D55', '#FF6B8B'] : ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.05)']}
+                      borderColor={interests.includes(item.label) ? 'rgba(255, 45, 85, 0.4)' : 'rgba(255, 255, 255, 0.1)'}
+                    />
+                ))}
+            </View>
 
           <View style={{ height: 100 }} />
       </ScrollView>
@@ -376,19 +412,34 @@ const styles = StyleSheet.create({
 
   // Glass Grouping Styles
   glassGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)', paddingVertical: 5 },
+  optionCapsule: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  optionText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 15,
+    fontWeight: '600',
+  },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 50 },
   rowLabel: { color: '#fff', fontSize: 16, fontWeight: '500' },
   rowInput: { flex: 1, backgroundColor: 'transparent', borderWidth: 0, height: '100%', justifyContent: 'center' },
   alignRight: { textAlign: 'right', color: '#FF2D55', fontWeight: '700', paddingBottom: 0 ,paddingRight: 15 },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 15 },
   bioInput: { height: 80, textAlignVertical: 'top', color: '#fff', paddingHorizontal: 15, paddingTop: 10 },
-  
-  // Grid Styles
-  gridContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
-  gridOption: { width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  gridOptionSelected: { backgroundColor: 'rgba(255, 45, 85, 0.3)', borderColor: '#FF2D55' },
-  gridOptionText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, textAlign: 'center', marginTop: 4 },
-  gridOptionTextSelected: { color: '#fff', fontWeight: 'bold' },
-
-  interestsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', paddingHorizontal: 10 },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  interestsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
 });

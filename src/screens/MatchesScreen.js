@@ -20,64 +20,17 @@ const CARD_WIDTH = (width - 60) / COLUMN_COUNT;
 export default function MatchesScreen() {
   const { user, userData } = useAuth();
   const [matches, setMatches] = useState([]);
+  const [whoLikedMe, setWhoLikedMe] = useState([]);
   const [purchaseModalVisible, setPurchaseModalVisible] = useState(false);
   const [showLocked, setShowLocked] = useState(false);
   const navigation = useNavigation();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user || userData?.isPremium) {
-          setShowLocked(false);
-          return;
-      }
-
-      let unsubscribe = null;
-      let isMounted = true;
-
-      const setup = async () => {
-          try {
-              // Check if user has visited matches screen before
-              const hasVisited = await StorageService.getHasVisitedMatches(user.uid);
-              
-              // Mark as visited for NEXT time
-              if (hasVisited !== 'true') {
-                  await StorageService.setHasVisitedMatches(user.uid);
-              }
-
-              // Check if force refresh is requested (from HomeScreen swipe threshold)
-              const shouldForceRefresh = await StorageService.getForceRefreshMatches(user.uid);
-              
-              if (shouldForceRefresh) {
-                  await StorageService.setForceRefreshMatches(user.uid, false); // Reset
-              }
-
-              // Only show locked match if this is NOT the first visit (hasVisited was already true)
-              // OR if we forced a refresh (meaning they swiped enough)
-              const shouldShowLocked = hasVisited === 'true' || shouldForceRefresh;
-
-              if (isMounted) {
-                  setShowLocked(shouldShowLocked);
-              }
-          } catch (e) {
-              console.error("Error in MatchesScreen setup", e);
-          }
-      };
-
-      setup();
-      
-      return () => {
-          isMounted = false;
-          if (unsubscribe) unsubscribe();
-      };
-    }, [user, userData])
-  );
-
   useEffect(() => {
     if (!user) return;
 
-    const q = query(collection(db, 'matches'), where('users', 'array-contains', user.uid));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // 1. Fetch real matches (mutual likes)
+    const matchesQuery = query(collection(db, 'matches'), where('users', 'array-contains', user.uid));
+    const unsubscribeMatches = onSnapshot(matchesQuery, (snapshot) => {
       const fetchedMatches = snapshot.docs.map(doc => {
         const data = doc.data();
         const otherUserId = data.users.find((id) => id !== user.uid);
@@ -86,35 +39,67 @@ export default function MatchesScreen() {
           id: doc.id,
           ...data,
           otherUser: otherUserData,
+          type: 'match'
         };
       });
       setMatches(fetchedMatches);
     });
 
-    return () => unsubscribe();
+    // 2. Fetch people who liked the current user
+    const likesQuery = collection(db, 'users', user.uid, 'whoLikedMe');
+    const unsubscribeLikes = onSnapshot(likesQuery, (snapshot) => {
+      const fetchedLikes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        type: 'like_received'
+      }));
+      setWhoLikedMe(fetchedLikes);
+    });
+
+    return () => {
+      unsubscribeMatches();
+      unsubscribeLikes();
+    };
   }, [user]);
 
   const renderItem = ({ item }) => {
-    if (item.id === 'locked_match') {
+    const isPremium = userData?.isPremium;
+
+    if (item.type === 'like_received') {
       return (
         <TouchableOpacity 
           activeOpacity={0.9}
           style={styles.cardWrapper}
-          onPress={() => setPurchaseModalVisible(true)}
+          onPress={() => isPremium ? navigation.navigate('UserProfile', { userId: item.id }) : setPurchaseModalVisible(true)}
         >
           <View style={styles.glassCard}>
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80' }} 
-              style={[styles.cardImage, { opacity: 0.8 }]} 
-              blurRadius={Platform.OS === 'ios' ? 60 : 30}
+              source={{ uri: item.photo }} 
+              style={[styles.cardImage, !isPremium && { opacity: 0.8 }]} 
+              blurRadius={!isPremium ? (Platform.OS === 'ios' ? 60 : 30) : 0}
             />
-            <View style={styles.lockedOverlay}>
-              <View style={styles.lockIconCircle}>
-                <Ionicons name="lock-closed" size={24} color="#FF2D55" />
+            {!isPremium && (
+              <View style={styles.lockedOverlay}>
+                <View style={styles.lockIconCircle}>
+                  <Ionicons name="lock-closed" size={24} color="#FF2D55" />
+                </View>
+                <Text style={styles.lockedTitle}>Liked You!</Text>
+                <Text style={styles.lockedSubtitle}>Tap to unlock</Text>
               </View>
-              <Text style={styles.lockedTitle}>Someone liked you!</Text>
-              <Text style={styles.lockedSubtitle}>Tap to unlock</Text>
-            </View>
+            )}
+            {isPremium && (
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.9)']}
+                style={styles.cardGradient}
+              >
+                <BlurView intensity={20} tint="dark" style={styles.nameBadge}>
+                  <Text style={styles.nameText} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <View style={[styles.onlineDot, { backgroundColor: '#FFD700' }]} />
+                </BlurView>
+              </LinearGradient>
+            )}
           </View>
         </TouchableOpacity>
       );
@@ -145,8 +130,21 @@ export default function MatchesScreen() {
     );
   };
 
-  // Determine if we should show the locked match
-  const data = showLocked ? [{ id: 'locked_match' }, ...matches] : matches;
+  // Combine real matches and real likes, avoiding duplicates and sorting by time
+  const combinedData = (() => {
+    // 1. Get all IDs of users we already matched with
+    const matchedUserIds = matches.map(m => m.otherUser.id);
+    
+    // 2. Filter whoLikedMe to remove those who are already in matches
+    const uniqueLikes = whoLikedMe.filter(like => !matchedUserIds.includes(like.id));
+    
+    // 3. Combine and Sort by timestamp (Newest first)
+    return [...uniqueLikes, ...matches].sort((a, b) => {
+      const timeA = a.timestamp?.toMillis?.() || a.createdAt?.toMillis?.() || 0;
+      const timeB = b.timestamp?.toMillis?.() || b.createdAt?.toMillis?.() || 0;
+      return timeB - timeA;
+    });
+  })();
 
   return (
     <View style={styles.container}>
@@ -157,14 +155,14 @@ export default function MatchesScreen() {
         <AppHeader style={styles.header} />
         
         <FlatList
-          data={data}
+          data={combinedData}
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
-          style={{ marginBottom: Platform.OS === 'ios' ? 105 : 83 }} // Reduced to bring it closer to TabBar
+          style={{ marginBottom: Platform.OS === 'ios' ? 105 : 83 }}
           contentContainerStyle={[styles.list, { paddingTop: 60 }]}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={<Text style={styles.sectionTitle}>Your Matches</Text>}
+          ListHeaderComponent={<Text style={styles.sectionTitle}>{whoLikedMe.length > 0 ? 'Who Liked You & Matches' : 'Your Matches'}</Text>}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
@@ -182,8 +180,6 @@ export default function MatchesScreen() {
         onClose={() => setPurchaseModalVisible(false)}
         onPurchase={() => {
             setPurchaseModalVisible(false);
-            // Add navigation to purchase or actual purchase logic here
-            // For now, let's just close it, assuming PurchaseModal handles the purchase flow
         }}
       />
     </View>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Alert, Dimensions, StatusBar, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, Alert, Dimensions, StatusBar, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../services/AuthContext';
 import { GlassButton } from '../components/GlassButton';
@@ -8,56 +8,65 @@ import { PurchaseModal } from '../components/PurchaseModal';
 import { COLORS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
 import { deleteUser } from 'firebase/auth';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
-
-const PerkItem = ({ icon, text }) => (
-  <View style={styles.perkItem}>
-    <View style={styles.perkIconCircle}>
-      <Ionicons name={icon} size={16} color="#FF2D55" />
-    </View>
-    <Text style={styles.perkText}>{text}</Text>
-  </View>
-);
+const { width, height } = Dimensions.get('window');
 
 export default function ProfileScreen() {
-  const { userData, logout, upgradeToPremium, cancelPremium } = useAuth();
+  const { user, userData, logout, upgradeToPremium, cancelPremium } = useAuth();
   const navigation = useNavigation();
   const [purchasing, setPurchasing] = React.useState(false);
   const [cancelling, setCancelling] = React.useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = React.useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [matchesCount, setMatchesCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // 1. Fetch real-time Likes Count (Who Liked Me)
+    const likesQuery = collection(db, 'users', user.uid, 'whoLikedMe');
+    const unsubscribeLikes = onSnapshot(likesQuery, (snapshot) => {
+      setLikesCount(snapshot.size);
+    });
+
+    // 2. Fetch real-time Matches Count
+    const matchesQuery = query(collection(db, 'matches'), where('users', 'array-contains', user.uid));
+    const unsubscribeMatches = onSnapshot(matchesQuery, (snapshot) => {
+      setMatchesCount(snapshot.size);
+    });
+
+    return () => {
+      unsubscribeLikes();
+      unsubscribeMatches();
+    };
+  }, [user]);
 
   const handlePurchase = () => {
-    if (userData?.isPremium) {
-      // Logic handled by Remove Subscription button now
-      return;
-    }
+    if (userData?.isPremium) return;
     setShowPurchaseModal(true);
   };
 
   const handleCancelSubscription = () => {
     Alert.alert(
       'Cancel Subscription',
-      'Are you sure you want to cancel your Lovify Premium subscription? You will lose all exclusive features immediately.',
+      'Are you sure you want to cancel your Lovify Premium subscription?',
       [
-        { text: 'Keep Subscription', style: 'cancel' },
+        { text: 'Keep', style: 'cancel' },
         { 
-          text: 'Remove Subscription', 
+          text: 'Remove', 
           style: 'destructive',
           onPress: async () => {
             setCancelling(true);
             try {
-              // Simulate delay
-              await new Promise(resolve => setTimeout(resolve, 1500));
               await cancelPremium();
-              Alert.alert('Subscription Cancelled', 'Your Premium subscription has been removed.');
+              Alert.alert('Subscription Removed');
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel subscription. Please try again.');
+              Alert.alert('Error', 'Failed to cancel.');
             } finally {
               setCancelling(false);
             }
@@ -74,190 +83,187 @@ export default function ProfileScreen() {
         setShowPurchaseModal(false);
         Alert.alert('Success', 'Welcome to Lovify Premium!');
     } catch (error) {
-        Alert.alert('Error', 'Purchase failed. Please try again.');
+        Alert.alert('Error', 'Purchase failed.');
     } finally {
         setPurchasing(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const user = auth.currentUser;
-              if (user) {
-                // Delete user data from Firestore
-                await deleteDoc(doc(db, 'users', user.uid));
-                
-                // Delete user from Authentication
-                await deleteUser(user);
-                
-                // Navigation to login will happen automatically due to auth state change
-              }
-            } catch (error) {
-              console.error('Error deleting account:', error);
-              Alert.alert('Error', 'Failed to delete account. You may need to re-login and try again.');
-            }
-          }
-        }
-      ]
-    );
-  };
+  const menuItems = [
+    { id: 'edit', label: 'Edit Profile', icon: 'create-outline', color: '#FF2D55', onPress: () => navigation.navigate('EditProfile') },
+    { id: 'privacy', label: 'Privacy Policy', icon: 'lock-closed-outline', color: '#0A84FF', onPress: () => navigation.navigate('PrivacyPolicy') },
+  ];
+
+  const renderMenuItem = (item) => (
+    <TouchableOpacity 
+      key={item.id}
+      onPress={item.onPress}
+      activeOpacity={0.7}
+      style={styles.menuItemWrapper}
+    >
+      <BlurView intensity={20} tint="dark" style={styles.menuItemBlur}>
+        <View style={[styles.menuIconCircle, { backgroundColor: item.color + '20' }]}>
+          <Ionicons name={item.icon} size={20} color={item.color} />
+        </View>
+        <Text style={styles.menuItemText}>{item.label}</Text>
+        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
+      </BlurView>
+    </TouchableOpacity>
+  );
 
   if (!userData) return null;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
+      <LinearGradient 
+        colors={['#0f0f0f', '#000000', '#1a0b12']} 
+        style={StyleSheet.absoluteFill} 
+      />
       
-      {/* <SafeAreaView style={styles.safeArea}> */}
-        
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          
-          {/* New Horizontal Profile Header */}
-          <View style={styles.profileSection}>
-            <View style={styles.profileRow}>
-              {/* Profile Picture */}
-              <View style={styles.avatarContainer}>
-                {userData.photo || (userData.photos && userData.photos[0]) ? (
-                  <Image 
-                    source={{ uri: userData.photo || (userData.photos && userData.photos[0]) }} 
-                    style={styles.avatar} 
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.avatar, styles.placeholderAvatar]}>
-                    <Ionicons name="person" size={40} color="rgba(255,255,255,0.2)" />
-                  </View>
-                )}
-                <View style={styles.onlineIndicator} />
-              </View>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.content} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Section Background Blurred Image */}
+        <View style={styles.headerBgWrapper} pointerEvents="none">
+          {userData?.photo || (userData?.photos && userData?.photos[0]) ? (
+            <Image 
+              source={{ uri: userData?.photo || userData?.photos[0] }} 
+              style={styles.headerBgImage} 
+              blurRadius={Platform.OS === 'ios' ? 60 : 30}
+            />
+          ) : null}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', '#000000']}
+            style={StyleSheet.absoluteFill}
+          />
+          <LinearGradient
+            colors={userData?.isPremium ? ['rgba(255, 215, 0, 0.12)', 'transparent'] : ['rgba(255, 45, 85, 0.12)', 'transparent']}
+            style={styles.headerBgGlow}
+          />
+        </View>
 
-              {/* Name & Age */}
-              <View style={styles.userInfo}>
-                <Text style={styles.name}>{userData.name}, {userData.age}</Text>
-                <Text style={styles.subtext}>Ready to find love</Text>
-              </View>
-
-              {/* Edit Button (Gradient Pill Style) */}
-              <TouchableOpacity 
-                onPress={() => navigation.navigate('EditProfile')}
-                activeOpacity={0.8}
-                style={styles.editBtnContainer}
-              >
-                <LinearGradient
-                  colors={['#FF2D55', '#FF375F']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.editButtonGradient}
-                >
-                  <Ionicons name="create-outline" size={18} color="#fff" />
-                  <Text style={styles.editButtonText}>Edit</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Premium Card */}
-          <View style={styles.premiumContainer}>
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.avatarContainer}>
             <LinearGradient
-              colors={['#1c1c1e', '#2c2c2e']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.premiumCard}
-            >
-              {/* Gold Border/Glow effect using a pseudo-element logic or nested views if needed, 
-                  but here we'll use a border on the card itself */}
-              
-              <View style={styles.premiumHeader}>
-                <View>
-                  <Text style={styles.premiumTitle}>Lovify Premium</Text>
-                  <Text style={styles.premiumSubtitle}>Unlock exclusive features</Text>
+              colors={userData?.isPremium ? ['#FFD700', '#FFA500'] : ['#FF2D55', '#FF375F']}
+              style={styles.avatarGlow}
+            />
+            <View style={styles.avatarInner}>
+              {userData.photo || (userData.photos && userData.photos[0]) ? (
+                <Image 
+                  source={{ uri: userData.photo || (userData.photos && userData.photos[0]) }} 
+                  style={styles.avatarMain} 
+                />
+              ) : (
+                <View style={[styles.avatarMain, styles.placeholderAvatar]}>
+                  <Ionicons name="person" size={50} color="rgba(255,255,255,0.2)" />
                 </View>
-                <LinearGradient 
-                  colors={['#FFD700', '#FFA500']} 
-                  start={{ x: 0, y: 0 }} 
-                  end={{ x: 1, y: 1 }} 
-                  style={styles.proBadge}
-                >
-                  <Ionicons name="diamond" size={12} color="#000" style={{ marginRight: 4 }} />
-                  <Text style={styles.proText}>PRO</Text>
-                </LinearGradient>
-              </View>
+              )}
+            </View>
+              <View style={styles.onlineBadge} />
+            </View>
 
-              <View style={styles.perksContainer}>
-                <PerkItem icon="infinite" text="Unlimited Swipes" />
-                <PerkItem icon="eye" text="See Who Likes You" />
-                <PerkItem icon="chatbubbles" text="Chat with your match" />
-                <PerkItem icon="ban" text="No Advertisement" />
-              </View>
+          <View style={styles.headerInfo}>
+            <BlurView intensity={10} tint="light" style={styles.nameBadgeWrapper}>
+              <Text style={styles.profileName}>{userData.name}, {userData.age}</Text>
+            </BlurView>
+          </View>
+        </View>
 
-              <TouchableOpacity 
-                key={userData?.isPremium ? 'premium-btn' : 'upgrade-btn'}
-                activeOpacity={0.9} 
-                onPress={userData?.isPremium ? handleCancelSubscription : handlePurchase} 
-                disabled={purchasing || cancelling}
-                style={{ width: '100%' }}
+        {/* Stats Grid */}
+        <View style={styles.statsContainer}>
+          <BlurView intensity={15} tint="dark" style={styles.statCard}>
+            <Ionicons name="heart" size={20} color="#FF2D55" />
+            <Text style={styles.statValue}>{likesCount}</Text>
+            <Text style={styles.statLabel}>Likes</Text>
+          </BlurView>
+          <BlurView intensity={15} tint="dark" style={styles.statCard}>
+            <Ionicons name="flame" size={20} color="#FF9500" />
+            <Text style={styles.statValue}>{matchesCount}</Text>
+            <Text style={styles.statLabel}>Matches</Text>
+          </BlurView>
+          <BlurView intensity={15} tint="dark" style={styles.statCard}>
+            <Ionicons name="star" size={20} color="#FFD60A" />
+            <Text style={styles.statValue}>{userData.isPremium ? 'Gold' : 'Free'}</Text>
+            <Text style={styles.statLabel}>Status</Text>
+          </BlurView>
+        </View>
+
+        {/* Premium Section */}
+        <View style={styles.premiumSection}>
+          {userData?.isPremium ? (
+            <BlurView intensity={30} tint="light" style={styles.activePremiumCard}>
+              <LinearGradient
+                colors={['rgba(255, 215, 0, 0.2)', 'rgba(255, 215, 0, 0.05)']}
+                style={styles.activePremiumGradient}
               >
-                <LinearGradient
-                  colors={userData?.isPremium ? ['#3a3a3c', '#2c2c2e'] : ['#FF2D55', '#FFA500']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.upgradeButton, userData?.isPremium && { borderWidth: 1, borderColor: '#FF453A' }]}
-                >
-                  <Text style={[styles.upgradeButtonText, userData?.isPremium && { color: '#FF453A' }]}>
-                    {purchasing ? 'PROCESSING...' : 
-                     cancelling ? 'REMOVING...' : 
-                     (userData?.isPremium ? 'REMOVE SUBSCRIPTION' : 'UPGRADE NOW')}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-
-          {/* Stats Section */}
-          <View style={styles.statsContainer}>
-            <BlurView intensity={20} tint="dark" style={styles.statCard}>
-               <Ionicons name="transgender-outline" size={24} color="#FF2D55" />
-               <Text style={styles.statValue}>{userData.gender}</Text>
-               <Text style={styles.statLabel}>Gender</Text>
+                <View style={styles.activeHeader}>
+                  <View style={styles.goldCircle}>
+                    <Ionicons name="diamond" size={24} color="#FFD700" />
+                  </View>
+                  <View>
+                    <Text style={styles.activePremiumTitle}>Lovify Premium Active</Text>
+                    <Text style={styles.activePremiumDesc}>All features unlocked</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={handleCancelSubscription} style={styles.manageBtn}>
+                  <Text style={styles.manageBtnText}>Manage Subscription</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#FFD700" />
+                </TouchableOpacity>
+              </LinearGradient>
             </BlurView>
-
-            <BlurView intensity={20} tint="dark" style={styles.statCard}>
-               <Ionicons name="heart-half-outline" size={24} color="#5856D6" />
-               <Text style={styles.statValue}>{userData.interestedIn}</Text>
-               <Text style={styles.statLabel}>Interested In</Text>
-            </BlurView>
-          </View>
-
-          {/* Settings & Logout */}
-          <View style={styles.actionSection}>
-            <Text style={styles.menuTitle}>Logout</Text>
-            
-            <TouchableOpacity onPress={logout} activeOpacity={0.9} style={{ marginBottom: 15 }}>
-               <LinearGradient 
-                  colors={['#2c2c2e', '#3a3a3c']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.upgradeButton, { flexDirection: 'row', gap: 10, justifyContent: 'center' }]}
-               >
-                  <Ionicons name="log-out-outline" size={22} color="#fff" />
-                  <Text style={[styles.upgradeButtonText, { color: '#fff' }]}>LOGOUT</Text>
-               </LinearGradient>
+          ) : (
+            <TouchableOpacity 
+              activeOpacity={0.9} 
+              onPress={handlePurchase}
+              style={styles.upgradeCard}
+            >
+              <LinearGradient
+                colors={['#FF2D55', '#AF52DE']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.upgradeGradient}
+              >
+                <View style={styles.upgradeInfo}>
+                  <Text style={styles.upgradeTitle}>Get Lovify Gold</Text>
+                  <Text style={styles.upgradeDesc}>See who likes you & more!</Text>
+                </View>
+                <View style={styles.upgradeBadge}>
+                  <Text style={styles.upgradeBadgeText}>Upgrade</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
-          </View>
+          )}
+        </View>
 
-        </ScrollView>
-        <AppHeader style={styles.header} />
-      {/* </SafeAreaView> */}
+        {/* Menu Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.menuTitle}>Account Settings</Text>
+          {menuItems.map(renderMenuItem)}
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity 
+          onPress={logout} 
+          activeOpacity={0.8} 
+          style={styles.logoutRow}
+        >
+          <LinearGradient
+            colors={['rgba(255,69,58,0.1)', 'rgba(255,69,58,0.05)']}
+            style={styles.logoutGradient}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#FF453A" />
+            <Text style={styles.logoutText}>Logout from Lovify</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+      <AppHeader style={styles.header} />
 
       <PurchaseModal 
         visible={showPurchaseModal}
@@ -277,9 +283,13 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+    marginBottom: Platform.OS === 'ios' ? 105 : 83,
+  },
   content: {
-    paddingBottom: 80,
-    paddingTop: 80,
+    paddingBottom: 20,
+    paddingTop: 120, // Increased to clear AppHeader initially
   },
   header: {
     position: 'absolute',
@@ -288,168 +298,103 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 100,
   },
-  // Profile Section Styles
-  profileSection: {
-    paddingHorizontal: 20,
-    marginBottom: 25,
-    marginTop: 10,
-  },
-  profileRow: {
-    flexDirection: 'row',
+  // Header Section
+  headerSection: {
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: 30,
+    zIndex: 2,
+  },
+  headerBgWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 330,
+    alignItems: 'center',
+    zIndex: 1,
+    overflow: 'hidden',
+  },
+  headerBgImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.45,
+  },
+  headerBgGlow: {
+    width: width * 1.5,
+    height: 330,
+    borderRadius: width,
+    position: 'absolute',
+    top: -80,
+    opacity: 0.6,
   },
   avatarContainer: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: '#333',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#32D74B',
-    borderWidth: 2,
-    borderColor: '#000',
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 15,
+    width: 130,
+    height: 130,
     justifyContent: 'center',
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.5,
-  },
-  subtext: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 2,
-  },
-  editBtnContainer: {
-    shadowColor: '#FF2D55',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  editButtonGradient: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    gap: 6,
+    marginBottom: 15,
   },
-  editButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
+  avatarGlow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    opacity: 0.5,
+  },
+  avatarInner: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    padding: 4,
+    backgroundColor: '#000',
+    overflow: 'hidden',
+  },
+  avatarMain: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 56,
   },
   placeholderAvatar: {
     backgroundColor: '#1c1c1e',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
-
-  // Premium Card Styles
-  premiumContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 25,
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#32D74B',
+    borderWidth: 3,
+    borderColor: '#000',
   },
-  premiumCard: {
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)', // Goldish border
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  premiumHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  headerInfo: {
     alignItems: 'center',
-    marginBottom: 15,
+    marginTop: 10,
   },
-  premiumTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -1,
-  },
-  premiumSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 2,
-  },
-  proBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  proText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 14,
-    letterSpacing: 0.5,
-  },
-  perksContainer: {
-    marginBottom: 20,
-    gap: 12,
-  },
-  perkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  perkIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  perkText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  upgradeButton: {
-    width: '100%',
+  nameBadgeWrapper: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 30,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  upgradeButtonText: {
-    color: '#000',
-    fontSize: 16,
+  profileName: {
+    fontSize: 28,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    color: '#fff',
+    letterSpacing: -0.5,
   },
-
-  // Stats Styles
+  // Stats Grid
   statsContainer: {
     flexDirection: 'row',
-    gap: 15,
     paddingHorizontal: 20,
-    marginBottom: 30,
+    gap: 12,
+    marginBottom: 25,
+    zIndex: 5,
   },
   statCard: {
     flex: 1,
@@ -459,50 +404,160 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#fff',
     marginTop: 6,
-    textTransform: 'capitalize',
   },
   statLabel: {
     fontSize: 11,
-    color: '#8E8E93',
+    color: 'rgba(255,255,255,0.5)',
     fontWeight: '600',
     textTransform: 'uppercase',
     marginTop: 2,
   },
 
-  // Action Section
-  actionSection: {
-    width: '100%',
-    paddingHorizontal: 25,
+  // Premium Section
+  premiumSection: {
+    paddingHorizontal: 20,
+    marginBottom: 25,
+  },
+  activePremiumCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  activePremiumGradient: {
+    padding: 20,
+  },
+  activeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 15,
+  },
+  goldCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activePremiumTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFD700',
+  },
+  activePremiumDesc: {
+    fontSize: 13,
+    color: 'rgba(255,215,0,0.6)',
+  },
+  manageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 15,
+  },
+  manageBtnText: {
+    color: '#FFD700',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  upgradeCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    elevation: 10,
+    shadowColor: '#FF2D55',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+  },
+  upgradeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  upgradeInfo: {
+    flex: 1,
+  },
+  upgradeTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  upgradeDesc: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  upgradeBadge: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  upgradeBadgeText: {
+    color: '#FF2D55',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+
+  // Menu Section
+  menuSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
   menuTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#8E8E93',
+    color: 'rgba(255,255,255,0.4)',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 15,
     marginLeft: 5,
   },
-  button: {
-    width: '100%',
-    height: 56,
-    marginBottom: 15,
-  },
-  devButton: {
-    backgroundColor: 'rgba(50, 215, 75, 0.05)',
-    borderColor: 'rgba(50, 215, 75, 0.2)',
-  },
-  logoutRow: {
-    marginTop: 10,
+  menuItemWrapper: {
+    marginBottom: 12,
     borderRadius: 20,
     overflow: 'hidden',
+  },
+  menuItemBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingRight: 16,
+  },
+  menuIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  menuItemText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  // Logout
+  logoutRow: {
+    marginHorizontal: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,69,58,0.2)',
   },
   logoutGradient: {
     flexDirection: 'row',

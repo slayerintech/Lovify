@@ -27,7 +27,7 @@ import { MatchModal } from '../components/MatchModal';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { AppHeader } from '../components/AppHeader';
 import { GlassChip } from '../components/GlassChip';
-import { INTERESTS_LIST } from '../data/constants';
+import { INTERESTS_LIST, LOOKING_FOR_OPTIONS } from '../data/constants';
 import { getLocalImage } from '../utils/imageMap';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
@@ -35,7 +35,7 @@ import StorageService from '../services/StorageService';
 
 const { width, height } = Dimensions.get('window');
 const GAP = 10;
-const ITEM_WIDTH = (width - 40 - (GAP * 2)) / 3; // 40 is paddingHorizontal (20*2)
+const ITEM_WIDTH = (width - 24 - (GAP * 2)) / 3; // 24 is paddingHorizontal (12*2)
 
 const THEME = {
   bg: '#000000',
@@ -88,11 +88,8 @@ export default function HomeScreen() {
     if (!user || !userData) return;
     try {
       let passedUserIds = [];
-      // TEMPORARY: Commented out to show all users every time app restarts
-      // if (!reset) {
-      //   const likesSnapshot = await getDocs(collection(db, 'likes', user.uid, 'liked'));
-      //   passedUserIds = likesSnapshot.docs.map(doc => doc.id);
-      // }
+      // To show all users again on reload or when stack is empty, 
+      // we only exclude the current user.
       passedUserIds.push(user.uid);
 
       let q = query(collection(db, 'users'));
@@ -160,26 +157,31 @@ export default function HomeScreen() {
     }
   };
 
-  // Use useFocusEffect to refresh profiles every time the user enters the Home screen
+  // Use useFocusEffect to refresh profiles only if stack is empty
   useFocusEffect(
     useCallback(() => {
-      fetchProfiles();
-    }, [user, userData]) // Re-fetch if user/userData changes or on focus
+      if (profiles.length === 0) {
+        fetchProfiles();
+      }
+    }, [user, userData, profiles.length]) // Re-fetch only if empty
   );
 
   useEffect(() => {
     // Listener for app state changes (foreground/background)
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'active') {
-        console.log('App has come to the foreground, refreshing profiles...');
-        fetchProfiles();
+        // Only refresh if we have no profiles left to avoid jumping the stack
+        if (profiles.length === 0) {
+          console.log('App in foreground and stack empty, refreshing...');
+          fetchProfiles();
+        }
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [user, userData]); // Re-subscribe if user info changes
+  }, [user, userData, profiles.length]); // Re-subscribe if profiles length changes
 
   const updateDailySwipes = async () => {
     if (userData?.isPremium) return;
@@ -220,17 +222,35 @@ export default function HomeScreen() {
 
   const swipeRight = async (cardIndex) => {
     const userSwiped = profiles[cardIndex];
-    await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'like', timestamp: serverTimestamp() });
-    setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
-    AdService.handleSwipe();
-    updateDailySwipes();
+    
+    try {
+      // 1. Save the like in the target user's "whoLikedMe" subcollection
+      const targetUserLikesRef = doc(db, 'users', userSwiped.id, 'whoLikedMe', user.uid);
+      await setDoc(targetUserLikesRef, {
+        id: user.uid,
+        name: userData.name,
+        photo: userData.photo,
+        age: userData.age,
+        timestamp: serverTimestamp()
+      });
 
-    const likedBackSnapshot = await getDoc(doc(db, 'likes', userSwiped.id, 'liked', user.uid));
-    if (likedBackSnapshot.exists() && likedBackSnapshot.data().type === 'like') {
-      const matchData = { users: [user.uid, userSwiped.id], usersData: { [user.uid]: userData, [userSwiped.id]: userSwiped }, createdAt: serverTimestamp() };
-      const matchRef = await addDoc(collection(db, 'matches'), matchData);
-      setLastMatch({ ...userSwiped, matchId: matchRef.id });
-      setMatchModalVisible(true);
+      // 2. Save in the current user's "liked" collection (as before)
+      await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'like', timestamp: serverTimestamp() });
+      
+      setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
+      AdService.handleSwipe();
+      updateDailySwipes();
+
+      // 3. Check for a mutual match
+      const likedBackSnapshot = await getDoc(doc(db, 'likes', userSwiped.id, 'liked', user.uid));
+      if (likedBackSnapshot.exists() && likedBackSnapshot.data().type === 'like') {
+        const matchData = { users: [user.uid, userSwiped.id], usersData: { [user.uid]: userData, [userSwiped.id]: userSwiped }, createdAt: serverTimestamp() };
+        const matchRef = await addDoc(collection(db, 'matches'), matchData);
+        setLastMatch({ ...userSwiped, matchId: matchRef.id });
+        setMatchModalVisible(true);
+      }
+    } catch (error) {
+      console.error("Error in swipeRight:", error);
     }
   };
 
@@ -305,35 +325,44 @@ export default function HomeScreen() {
           {/* Details Section for Current Profile */}
           {currentProfile && (
             <View style={styles.detailsContainer}>
-              <View style={styles.infoSection}>
-                {currentProfile.job ? <Text style={styles.job}>{currentProfile.job}</Text> : null}
-              </View>
-
-              {/* Bio Section */}
-              {currentProfile.bio ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>About Me</Text>
-                  <View style={styles.resetButton}>
-                    <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
-                      <Text style={[styles.resetButtonText, { lineHeight: 24, textTransform: 'none' }]}>{currentProfile.bio}</Text>
-                    </BlurView>
-                  </View>
-                </View>
-              ) : null}
+              {/* Job Title and Bio removed as they are on the card */}
 
               {/* Looking For Section */}
               {currentProfile.lookingFor ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Looking For</Text>
-                  <View style={styles.interestsContainer}>
-                    <View style={styles.resetButton}>
-                      <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
-                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                           <Ionicons name="search-outline" size={16} color={THEME.text} style={{ marginRight: 8 }} />
-                           <Text style={styles.resetButtonText}>{currentProfile.lookingFor}</Text>
-                         </View>
+                <View style={[styles.section, { padding: 0, backgroundColor: 'transparent', borderWidth: 0, marginBottom: 12 }]}>
+                  <View style={styles.lookingForWrapper}>
+                    <View style={[styles.resetButton, { flex: 1, borderWidth: 1.5, borderColor: 'rgba(255, 45, 85, 0.4)', backgroundColor: 'rgba(255, 45, 85, 0.05)' }]}>
+                      <BlurView intensity={30} tint="dark" style={{ overflow: 'hidden' }}>
+                        <LinearGradient
+                          colors={['rgba(255, 45, 85, 0.2)', 'rgba(255, 45, 85, 0.05)']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{ paddingHorizontal: 15, paddingVertical: 12 }}
+                        >
+                           <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start'}}>
+                             <Ionicons 
+                               name={LOOKING_FOR_OPTIONS.find(opt => opt.label === currentProfile.lookingFor)?.icon || "search-outline"} 
+                               size={26} 
+                               color={THEME.accent} 
+                               style={{ marginRight: 14 }} 
+                             />
+                             <Text style={[styles.resetButtonText, { fontSize: 16, fontWeight: '800', color: '#fff' }]}>{currentProfile.lookingFor}</Text>
+                           </View>
+                        </LinearGradient>
                       </BlurView>
                     </View>
+                    <TouchableOpacity 
+                      activeOpacity={0.8}
+                      onPress={() => handlePurchase()}
+                      style={styles.chatIconButton}
+                    >
+                      <LinearGradient
+                        colors={['#FF2D55', '#FF375F']}
+                        style={styles.chatIconGradient}
+                      >
+                        <Ionicons name="chatbubbles" size={22} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ) : null}
@@ -341,7 +370,10 @@ export default function HomeScreen() {
               {/* Interests Section */}
               {currentProfile.interests && currentProfile.interests.length > 0 ? (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Interests</Text>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="sparkles-outline" size={18} color="#FFD700" style={styles.sectionIcon} />
+                    <Text style={styles.sectionTitle}>Interests</Text>
+                  </View>
                   <View style={styles.interestsContainer}>
                     {currentProfile.interests.map((interest, index) => {
                       const interestItem = INTERESTS_LIST.find(item => item.label === interest);
@@ -353,7 +385,9 @@ export default function HomeScreen() {
                           icon={icon}
                           selected={true}
                           onPress={() => {}}
-                          style={{ width: ITEM_WIDTH, marginRight: 0, marginBottom: 0 }}
+                          style={{ width: ITEM_WIDTH, marginRight: 0, marginBottom: 0, height: 48, borderRadius: 16 }}
+                          gradientColors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                          borderColor="rgba(255, 255, 255, 0.2)"
                         />
                       );
                     })}
@@ -364,31 +398,46 @@ export default function HomeScreen() {
               {/* Religion Section */}
               {currentProfile.religion ? (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Religion</Text>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="leaf-outline" size={18} color="#32D74B" style={styles.sectionIcon} />
+                    <Text style={styles.sectionTitle}>Religion</Text>
+                  </View>
                   <View style={styles.interestsContainer}>
-                    <View style={styles.resetButton}>
-                      <BlurView intensity={50} tint="dark" style={styles.resetBlur}>
-                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                           <Ionicons name="book-outline" size={16} color={THEME.text} style={{ marginRight: 8 }} />
-                           <Text style={styles.resetButtonText}>{currentProfile.religion}</Text>
-                         </View>
+                    <View style={[styles.resetButton, { flex: 1, borderWidth: 1.5, borderColor: 'rgba(50, 215, 75, 0.4)', backgroundColor: 'rgba(50, 215, 75, 0.05)' }]}>
+                      <BlurView intensity={30} tint="dark" style={{ overflow: 'hidden' }}>
+                        <LinearGradient
+                          colors={['rgba(50, 215, 75, 0.2)', 'rgba(50, 215, 75, 0.05)']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={{ paddingHorizontal: 15, paddingVertical: 12 }}
+                        >
+                           <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start'}}>
+                             <Ionicons name="book-outline" size={26} color="#32D74B" style={{ marginRight: 14 }} />
+                             <Text style={[styles.resetButtonText, { fontSize: 16, fontWeight: '800', color: '#fff' }]}>{currentProfile.religion}</Text>
+                           </View>
+                        </LinearGradient>
                       </BlurView>
                     </View>
                   </View>
                 </View>
               ) : null}
 
-              {/* Other Details */}
+              {/* Other Details Section */}
               {currentProfile.gender ? (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Details</Text>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="person-outline" size={18} color="#0A84FF" style={styles.sectionIcon} />
+                    <Text style={styles.sectionTitle}>Gender</Text>
+                  </View>
                   <View style={styles.interestsContainer}>
                     <GlassChip 
                       label={currentProfile.gender}
                       icon={currentProfile.gender.toLowerCase() === 'male' ? 'male-outline' : currentProfile.gender.toLowerCase() === 'female' ? 'female-outline' : 'person-outline'}
                       selected={true}
                       onPress={() => {}}
-                      style={{ width: ITEM_WIDTH, marginRight: 0, marginBottom: 0 }}
+                      style={{ width: ITEM_WIDTH, marginRight: 0, marginBottom: 0, height: 48, borderRadius: 16 }}
+                      gradientColors={['rgba(10, 132, 255, 0.2)', 'rgba(10, 132, 255, 0.1)']}
+                      borderColor="rgba(10, 132, 255, 0.3)"
                     />
                   </View>
                 </View>
@@ -396,8 +445,7 @@ export default function HomeScreen() {
             </View>
           )}
           
-          {/* Spacer for bottom scrolling */}
-          <View style={{ height: 100 }} />
+          {/* Spacer for bottom scrolling removed as padding handles it */}
         </ScrollView>
 
         {/* Tinder-like Header */}
@@ -461,10 +509,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   detailsContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 0, // Removed top padding to bring details closer to the card
-    paddingBottom: 110,
-    marginTop: -10, // Pull up details slightly to overlap with card's bottom gradient area
+    paddingHorizontal: 12, 
+    paddingTop: 0, 
+    paddingBottom: 10, 
+    marginTop: 20, // Increased from -10 to create space below the card
   },
   infoSection: {
     marginBottom: 20,
@@ -477,22 +525,54 @@ const styles = StyleSheet.create({
   job: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: THEME.text,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    color: THEME.secondaryText,
     marginTop: 4,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 12, // Reduced from 20
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 24,
+    padding: 12, 
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center', 
+    marginBottom: 12,
+    gap: 8,
+  },
+  lookingForWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  chatIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    shadowColor: '#FF2D55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  chatIconGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: THEME.secondaryText,
-    marginBottom: 10,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+  },
+  sectionIcon: {
+    opacity: 0.6,
   },
   bioText: {
     fontSize: 16,
