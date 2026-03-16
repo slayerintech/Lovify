@@ -25,6 +25,7 @@ import AdService from '../services/AdService';
 import { TinderCard } from '../components/TinderCard';
 import { MatchModal } from '../components/MatchModal';
 import { PurchaseModal } from '../components/PurchaseModal';
+import { UpdateModal } from '../components/UpdateModal';
 import { AppHeader } from '../components/AppHeader';
 import { GlassChip } from '../components/GlassChip';
 import { INTERESTS_LIST, LOOKING_FOR_OPTIONS } from '../data/constants';
@@ -32,6 +33,7 @@ import { getLocalImage } from '../utils/imageMap';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 import StorageService from '../services/StorageService';
+import UpdateService from '../services/UpdateService';
 
 const { width, height } = Dimensions.get('window');
 const GAP = 10;
@@ -55,8 +57,26 @@ export default function HomeScreen() {
   const [lastMatch, setLastMatch] = useState(null);
   const [purchasing, setPurchasing] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState({ visible: false, forced: false, latestVersion: '', storeUrl: '', releaseNotes: '' });
   const navigation = useNavigation();
   const topCardRef = useRef(null);
+
+  useEffect(() => {
+    // Check for app updates on mount
+    const checkAppUpdate = async () => {
+      const update = await UpdateService.checkUpdate();
+      if (update.updateRequired) {
+        setUpdateInfo({
+          visible: true,
+          forced: update.forced,
+          latestVersion: update.latestVersion,
+          storeUrl: update.storeUrl,
+          releaseNotes: update.releaseNotes
+        });
+      }
+    };
+    checkAppUpdate();
+  }, []);
 
   const handlePurchase = () => {
     if (userData?.isPremium) {
@@ -216,7 +236,7 @@ export default function HomeScreen() {
     const userSwiped = profiles[cardIndex];
     await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'dislike', timestamp: serverTimestamp() });
     setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
-    AdService.handleSwipe();
+    AdService.showSwipeAd();
     updateDailySwipes();
   };
 
@@ -238,7 +258,7 @@ export default function HomeScreen() {
       await setDoc(doc(db, 'likes', user.uid, 'liked', userSwiped.id), { type: 'like', timestamp: serverTimestamp() });
       
       setProfiles(prev => prev.filter(p => p.id !== userSwiped.id));
-      AdService.handleSwipe();
+      AdService.showSwipeAd();
       updateDailySwipes();
 
       // 3. Check for a mutual match
@@ -468,6 +488,15 @@ export default function HomeScreen() {
         onClose={() => setShowPurchaseModal(false)}
         onPurchase={confirmPurchase}
         processing={purchasing}
+      />
+
+      <UpdateModal
+        visible={updateInfo.visible}
+        forced={updateInfo.forced}
+        latestVersion={updateInfo.latestVersion}
+        releaseNotes={updateInfo.releaseNotes}
+        storeUrl={updateInfo.storeUrl}
+        onClose={() => setUpdateInfo(prev => ({ ...prev, visible: false }))}
       />
     </View>
   );

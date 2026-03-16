@@ -67,6 +67,7 @@ export default function ChatsScreen() {
           activeOpacity={0.9}
           style={styles.chatCardWrapper}
           onPress={async () => {
+            console.log('ChatsScreen: Lovify Team clicked, showing ad...');
             await AdService.showChatAd();
             Alert.alert("Coming Soon", "Chat feature coming soon");
           }}
@@ -125,14 +126,12 @@ export default function ChatsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        <AppHeader style={styles.header} />
-        
         <ScrollView 
-          contentContainerStyle={{ paddingTop: 60 }}
+          contentContainerStyle={{ paddingTop: 20, paddingHorizontal: 20 }}
           style={{ marginBottom: Platform.OS === 'ios' ? 105 : 83 }} // Reduced to bring it closer to TabBar
         >
           {matches.length > 0 && renderNewMatches()}
@@ -176,25 +175,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   newMatchesSection: {
-    marginTop: 20,
+    marginTop: 0,
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#FF2D55',
+    color: 'rgba(255,255,255,0.4)',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: 5,
+    letterSpacing: 1.5,
+    paddingHorizontal: 0, // Removed padding here because container already has 20
     marginBottom: 15,
-    marginTop: 10,
+    marginTop: 0,
   },
   horizontalScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
   newMatchCircle: {
     alignItems: 'center',
-    marginHorizontal: 8,
+    marginRight: 16,
     width: 75,
   },
   avatarGlow: {
@@ -215,7 +214,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   list: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
     paddingTop: 10,
     paddingBottom: 110, // Increased to stop content before TabBar
     flexGrow: 1,

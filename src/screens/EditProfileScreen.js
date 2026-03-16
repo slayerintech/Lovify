@@ -172,6 +172,56 @@ export default function EditProfileScreen({ navigation }) {
     }
   };
 
+  const renderInterestItem = (item) => {
+    const isSelected = interests.includes(item.label);
+    const color = '#FF2D55'; // Vibrant pink/red
+    
+    return (
+      <TouchableOpacity
+        key={item.label}
+        activeOpacity={0.8}
+        onPress={() => toggleInterest(item.label)}
+        style={{ 
+          width: '48%', 
+          marginBottom: 10,
+        }}
+      >
+        <View style={[
+          styles.interestCapsule, 
+          isSelected && {
+            borderColor: color + '99', 
+            backgroundColor: color + '20',
+            borderWidth: 1.5,
+          }
+        ]}>
+          <BlurView intensity={isSelected ? 50 : 15} tint="dark" style={{ overflow: 'hidden', borderRadius: 18 }}>
+            <LinearGradient
+              colors={isSelected ? [color + '4D', color + '1A'] : ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ paddingHorizontal: 15, paddingVertical: 14 }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons 
+                  name={isSelected ? item.icon.replace('-outline', '') : item.icon} 
+                  size={20} 
+                  color={isSelected ? '#fff' : 'rgba(255,255,255,0.4)'} 
+                  style={{ marginRight: 8 }} 
+                />
+                <Text style={[
+                  styles.interestText, 
+                  isSelected && { color: '#fff', fontWeight: '800' }
+                ]}>
+                  {item.label}
+                </Text>
+              </View>
+            </LinearGradient>
+          </BlurView>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderGridOption = (option, selectedValue, onSelect, color = '#FF2D55', isFullWidth = false, index = 0) => {
     const isSelected = selectedValue === option.label;
     const isRightAligned = isFullWidth && index % 2 !== 0;
@@ -273,7 +323,12 @@ export default function EditProfileScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Basic Info</Text>
           <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
               <View style={styles.row}>
-                  <Text style={styles.rowLabel}>Name</Text>
+                  <View style={styles.rowLabelContainer}>
+                    <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(255, 45, 85, 0.1)' }]}>
+                      <Ionicons name="person-outline" size={18} color="#FF2D55" />
+                    </View>
+                    <Text style={styles.rowLabel}>Name</Text>
+                  </View>
                   <GlassInput 
                       value={name} 
                       onChangeText={setName} 
@@ -285,7 +340,12 @@ export default function EditProfileScreen({ navigation }) {
               </View>
               <View style={styles.divider} />
               <View style={styles.row}>
-                  <Text style={styles.rowLabel}>Job Title</Text>
+                  <View style={styles.rowLabelContainer}>
+                    <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(10, 132, 255, 0.1)' }]}>
+                      <Ionicons name="briefcase-outline" size={18} color="#0A84FF" />
+                    </View>
+                    <Text style={styles.rowLabel}>Job Title</Text>
+                  </View>
                   <GlassInput 
                       value={job} 
                       onChangeText={setJob} 
@@ -297,7 +357,12 @@ export default function EditProfileScreen({ navigation }) {
               </View>
               <View style={styles.divider} />
               <View style={styles.row}>
-                  <Text style={styles.rowLabel}>Age</Text>
+                  <View style={styles.rowLabelContainer}>
+                    <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(50, 215, 75, 0.1)' }]}>
+                      <Ionicons name="calendar-outline" size={18} color="#32D74B" />
+                    </View>
+                    <Text style={styles.rowLabel}>Age</Text>
+                  </View>
                   <GlassInput 
                       value={age} 
                       onChangeText={setAge} 
@@ -313,8 +378,14 @@ export default function EditProfileScreen({ navigation }) {
           {/* Bio Section */}
           <Text style={styles.sectionTitle}>About Me</Text>
           <BlurView intensity={10} tint="dark" style={styles.glassGroup}>
+              <View style={styles.bioHeader}>
+                <View style={[styles.rowIconCircle, { backgroundColor: 'rgba(175, 82, 222, 0.1)' }]}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={18} color="#AF52DE" />
+                </View>
+                <Text style={styles.rowLabel}>Bio</Text>
+              </View>
               <GlassInput 
-                  placeholder="Tell them About your self" 
+                  placeholder="Tell them something interesting about yourself..." 
                   value={bio} 
                   onChangeText={setBio} 
                   multiline 
@@ -350,21 +421,8 @@ export default function EditProfileScreen({ navigation }) {
             {/* Interests Section */}
             <Text style={styles.sectionTitle}>Interests</Text>
             <View style={styles.interestsContainer}>
-                {INTERESTS_LIST.map((item) => (
-                    <GlassChip 
-                      key={item.label} 
-                      label={item.label} 
-                      icon={item.icon}
-                      selected={interests.includes(item.label)} 
-                      onPress={() => toggleInterest(item.label)} 
-                      style={{ width: (width - 50) / 2, marginRight: 0, marginBottom: 0, height: 48, borderRadius: 16 }}
-                      gradientColors={interests.includes(item.label) ? ['#FF2D55', '#FF6B8B'] : ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.05)']}
-                      borderColor={interests.includes(item.label) ? 'rgba(255, 45, 85, 0.4)' : 'rgba(255, 255, 255, 0.1)'}
-                    />
-                ))}
+                {INTERESTS_LIST.map((item) => renderInterestItem(item))}
             </View>
-
-          <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -394,7 +452,7 @@ const styles = StyleSheet.create({
   scrollContent: { 
     paddingHorizontal: 20,
     paddingTop: 110, // Push content down below header
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   sectionTitle: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 25, marginBottom: 10, marginLeft: 5 },
   
@@ -424,12 +482,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 50 },
-  rowLabel: { color: '#fff', fontSize: 16, fontWeight: '500' },
-  rowInput: { flex: 1, backgroundColor: 'transparent', borderWidth: 0, height: '100%', justifyContent: 'center' },
-  alignRight: { textAlign: 'right', color: '#FF2D55', fontWeight: '700', paddingBottom: 0 ,paddingRight: 15 },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 15 },
-  bioInput: { height: 80, textAlignVertical: 'top', color: '#fff', paddingHorizontal: 15, paddingTop: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, height: 60 },
+  rowLabelContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  rowIconCircle: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  rowLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 16, fontWeight: '600' },
+  rowInput: { flex: 1.5, backgroundColor: 'transparent', borderWidth: 0, height: '100%', justifyContent: 'center' },
+  alignRight: { textAlign: 'right', color: '#fff', fontWeight: '700', paddingBottom: 0, paddingRight: 5 },
+  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginLeft: 60 },
+  bioHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingTop: 15, paddingBottom: 5 },
+  bioInput: { minHeight: 100, textAlignVertical: 'top', color: '#fff', paddingHorizontal: 15, paddingTop: 10, fontSize: 15, lineHeight: 22 },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -440,6 +501,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 10,
+    paddingBottom: 20,
+  },
+  interestCapsule: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    position: 'relative',
+  },
+  interestText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

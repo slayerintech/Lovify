@@ -15,6 +15,7 @@ import ChatsScreen from '../screens/ChatsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -126,6 +127,14 @@ export default function AppNavigator() {
             <Stack.Screen 
               name="PrivacyPolicy"  
               component={PrivacyPolicyScreen} 
+              options={{ 
+                presentation: 'modal',
+                headerShown: false,
+              }} 
+            />
+            <Stack.Screen 
+              name="TermsOfService"  
+              component={TermsOfServiceScreen} 
               options={{ 
                 presentation: 'modal',
                 headerShown: false,

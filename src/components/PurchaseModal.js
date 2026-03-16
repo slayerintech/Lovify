@@ -8,13 +8,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import RevenueCatService from '../services/revenueCat';
 import { useAuth } from '../services/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const PLANS = [
-  { id: 'monthly', name: 'Monthly', price: '₹149', priceValue: 149, subtitle: 'Standard' },
-  { id: 'yearly', name: 'Yearly', price: '₹999', priceValue: 999, subtitle: 'Best Value', save: 'Save 45%' },
-  { id: 'lifetime', name: 'Lifetime', price: '₹2459', priceValue: 2459, subtitle: 'One-time', save: 'Best Choice' },
+  { id: 'monthly', name: 'Monthly', price: '₹149', priceValue: 149, subtitle: 'Standard', billing: 'billed monthly' },
+  { id: 'yearly', name: 'Yearly', price: '₹999', priceValue: 999, subtitle: 'Best Value', save: 'Save 45%', billing: 'billed annually' },
+  { id: 'lifetime', name: 'Lifetime', price: '₹2459', priceValue: 2459, subtitle: 'One-time', save: 'Best Choice', billing: 'one-time payment' },
 ];
 
 export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
@@ -25,6 +26,7 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
   const [allPackages, setAllPackages] = useState([]); // Store all fetched packages for debug
   const [errorMsg, setErrorMsg] = useState(null); // Store fetch error
   const { restorePurchases } = useAuth();
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (visible) {
@@ -257,6 +259,12 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                 </View>
 
                 {/* Purchase Button */}
+                <View style={styles.purchaseSummary}>
+                    <Text style={styles.summaryText}>
+                        Selected: <Text style={styles.summaryHighlight}>{selectedPlan.name}</Text> ({availablePackages[selectedPlan.id]?.product?.priceString || selectedPlan.price}) {selectedPlan.billing}
+                    </Text>
+                </View>
+
                 <TouchableOpacity 
                   activeOpacity={0.9} 
                   onPress={handleRealPurchase}
@@ -273,19 +281,36 @@ export const PurchaseModal = ({ visible, onClose, onPurchase, processing }) => {
                       <ActivityIndicator color="#FFF" />
                     ) : (
                       <Text style={styles.purchaseButtonText}>
-                          Continue
+                          Subscribe Now
                       </Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
                 
-                <TouchableOpacity onPress={handleRestore} style={{ marginTop: 16 }}>
-                    <Text style={styles.restoreText}>Restore Purchases</Text>
-                </TouchableOpacity>
+                <View style={styles.legalLinksRow}>
+                    <TouchableOpacity onPress={handleRestore}>
+                        <Text style={styles.restoreText}>Restore Purchases</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.legalDivider}>|</Text>
+                    <TouchableOpacity onPress={() => { handleClose(); navigation.navigate('TermsOfService'); }}>
+                        <Text style={styles.restoreText}>Terms</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.legalDivider}>|</Text>
+                    <TouchableOpacity onPress={() => { handleClose(); navigation.navigate('PrivacyPolicy'); }}>
+                        <Text style={styles.restoreText}>Privacy</Text>
+                    </TouchableOpacity>
+                </View>
                 
-                <Text style={styles.termsText}>
-                  Recurring billing, cancel anytime. By continuing you agree to our Terms.
-                </Text>
+                <View style={styles.complianceContainer}>
+                    <Text style={styles.termsText}>
+                        <Text style={{ fontWeight: '700', color: 'rgba(255,255,255,0.5)' }}>Subscription Details:</Text>
+                        {"\n"}• Payment will be charged to your Google Play account at confirmation of purchase.
+                        {"\n"}• Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period.
+                        {"\n"}• Your account will be charged for renewal within 24 hours prior to the end of the current period at the rate of the selected plan.
+                        {"\n"}• You can manage your subscriptions and turn off auto-renewal by going to your Google Play Account Settings after purchase.
+                        {"\n"}• Basic app features are available for free.
+                    </Text>
+                </View>
               </View>
             </ScrollView>
           </View>
@@ -509,17 +534,47 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  purchaseSummary: {
+    width: '100%',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  summaryText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  summaryHighlight: {
+    color: '#FF2D55',
+    fontWeight: '800',
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 12,
+  },
+  legalDivider: {
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: 14,
+  },
+  complianceContainer: {
+    marginTop: 20,
+    paddingHorizontal: 10,
+    width: '100%',
+  },
   restoreText: {
       color: 'rgba(255,255,255,0.5)',
       fontSize: 14,
       fontWeight: '600',
   },
   termsText: {
-    marginTop: 20,
     fontSize: 11,
     color: 'rgba(255,255,255,0.3)',
-    textAlign: 'center',
+    textAlign: 'left',
     lineHeight: 16,
-    paddingHorizontal: 20,
   },
 });

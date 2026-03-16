@@ -1,173 +1,133 @@
-import { RewardedAd, RewardedAdEventType, InterstitialAd, AdEventType, TestIds, BannerAd, BannerAdSize, initializeAds } from '../utils/AdMob';
-import { View } from 'react-native';
 import React from 'react';
+import { View, Text } from 'react-native';
+import { BannerAd, BannerAdSize, TestIds, initializeAds, InterstitialAd, AdEventType } from '../utils/AdMob';
 
-// Use TestIds for development. 
-// When you are ready for production, replace 'null' with your actual Ad Unit IDs from AdMob Console.
 const PRODUCTION_AD_UNITS = {
-  SAVE_PROFILE_INTERSTITIAL: 'ca-app-pub-7503400330650109/6486409842',
-  SWIPE_INTERSTITIAL: 'ca-app-pub-7503400330650109/6486409842',
-  MATCHES_BANNER: 'ca-app-pub-7503400330650109/1931785849',
+  MATCHES_BANNER: 'ca-app-pub-7503400330650109/3141111145',
   CHATS_BANNER: 'ca-app-pub-7503400330650109/1931785849',
-  CHAT_INTERSTITIAL: 'ca-app-pub-7503400330650109/6486409842',
+  REWARDED_VIDEO: 'ca-app-pub-7503400330650109/2456789012',
+  INTERSTITIAL: 'ca-app-pub-7503400330650109/1234567890',
 };
 
 const AD_UNITS = {
-  SAVE_PROFILE_INTERSTITIAL: PRODUCTION_AD_UNITS.SAVE_PROFILE_INTERSTITIAL || TestIds.INTERSTITIAL,
-  SWIPE_INTERSTITIAL: PRODUCTION_AD_UNITS.SWIPE_INTERSTITIAL || TestIds.INTERSTITIAL,
   MATCHES_BANNER: PRODUCTION_AD_UNITS.MATCHES_BANNER || TestIds.BANNER,
   CHATS_BANNER: PRODUCTION_AD_UNITS.CHATS_BANNER || TestIds.BANNER,
-  CHAT_INTERSTITIAL: PRODUCTION_AD_UNITS.CHAT_INTERSTITIAL || TestIds.INTERSTITIAL,
+  REWARDED_VIDEO: PRODUCTION_AD_UNITS.REWARDED_VIDEO || TestIds.REWARDED,
+  INTERSTITIAL: PRODUCTION_AD_UNITS.INTERSTITIAL || TestIds.INTERSTITIAL,
 };
 
+let swipeCount = 0;
+const SWIPE_THRESHOLD = 5;
+
 class AdService {
-  static swipeCount = 0;
-  static saveProfileAd = null;
-  static swipeAd = null;
-  static chatAd = null;
-  static isSaveProfileAdLoaded = false;
-  static isSwipeAdLoaded = false;
-  static isChatAdLoaded = false;
-  static isPremium = false; // Add premium status
+  static isPremium = false;
+  static interstitial = null;
+  static isInterstitialLoaded = false;
 
   static setPremiumStatus(status) {
-    this.isPremium = status;
+    AdService.isPremium = status;
+    console.log('AdService: Premium status updated to', status);
   }
 
   static async init() {
-    await initializeAds();
-    this.loadSaveProfileAd();
-    this.loadSwipeAd();
-    this.loadChatAd();
-  }
-
-  static loadChatAd() {
-    const interstitial = InterstitialAd.createForAdRequest(AD_UNITS.CHAT_INTERSTITIAL, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      this.isChatAdLoaded = true;
-      this.chatAd = interstitial;
-      console.log('Chat Interstitial Ad Loaded');
-    });
-
-    interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      console.log('Chat Interstitial Ad Closed');
-      this.isChatAdLoaded = false;
-      this.chatAd = null;
-      this.loadChatAd();
-    });
-
-    interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
-      console.log('Chat Interstitial Ad Load Error:', error);
-      this.isChatAdLoaded = false;
-      this.chatAd = null;
-    });
-
-    interstitial.load();
-  }
-
-  static loadSaveProfileAd() {
-    const interstitial = InterstitialAd.createForAdRequest(AD_UNITS.SAVE_PROFILE_INTERSTITIAL, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      this.isSaveProfileAdLoaded = true;
-      this.saveProfileAd = interstitial;
-      console.log('Save Profile Interstitial Ad Loaded');
-    });
-
-    interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      console.log('Save Profile Interstitial Ad Closed');
-      this.isSaveProfileAdLoaded = false;
-      this.saveProfileAd = null;
-      this.loadSaveProfileAd();
-    });
-
-    interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
-      console.log('Save Profile Interstitial Ad Load Error:', error);
-      this.isSaveProfileAdLoaded = false;
-      this.saveProfileAd = null;
-    });
-
-    interstitial.load();
-  }
-
-  static loadSwipeAd() {
-    const interstitial = InterstitialAd.createForAdRequest(AD_UNITS.SWIPE_INTERSTITIAL, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      this.isSwipeAdLoaded = true;
-      this.swipeAd = interstitial;
-      console.log('Swipe Interstitial Ad Loaded');
-    });
-
-    interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      console.log('Swipe Interstitial Ad Closed');
-      this.isSwipeAdLoaded = false;
-      this.swipeAd = null;
-      this.loadSwipeAd();
-    });
-
-    interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
-      console.log('Swipe Interstitial Ad Load Error:', error);
-      this.isSwipeAdLoaded = false;
-      this.swipeAd = null;
-    });
-
-    interstitial.load();
-  }
-
-  static async showSaveProfileAd() {
-    if (this.isPremium) return; // Skip if premium
     try {
-        if (this.isSaveProfileAdLoaded && this.saveProfileAd) {
-          await this.saveProfileAd.show();
-        } else {
-          console.log('Save Profile Ad not ready yet');
-          this.loadSaveProfileAd();
-        }
-    } catch (e) {
-        console.error('Error showing Save Profile Ad:', e);
+      await initializeAds();
+      console.log('AdMob Initialized');
+      
+      // Load first interstitial
+      AdService.loadInterstitial();
+    } catch (error) {
+      console.error('AdMob Initialization Error:', error);
     }
   }
 
-  static async handleSwipe() {
-    if (this.isPremium) return; // Skip if premium
-    this.swipeCount++;
-    console.log('Swipe count:', this.swipeCount);
+  static loadInterstitial() {
+    if (AdService.isPremium) return;
+
+    const adUnitId = __DEV__ ? TestIds.INTERSTITIAL : AD_UNITS.INTERSTITIAL;
     
-    if (this.swipeCount >= 5) {
-      try {
-          if (this.isSwipeAdLoaded && this.swipeAd) {
-            await this.swipeAd.show();
-            this.swipeCount = 0;
-          } else {
-            console.log('Swipe Ad not ready yet');
-            this.loadSwipeAd();
-          }
-      } catch (e) {
-          console.error('Error showing Swipe Ad:', e);
+    AdService.interstitial = InterstitialAd.createForAdRequest(adUnitId, {
+      requestNonPersonalizedAdsOnly: false,
+    });
+
+    AdService.interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      AdService.isInterstitialLoaded = true;
+      console.log('AdService: Interstitial Ad Loaded');
+    });
+
+    AdService.interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      AdService.isInterstitialLoaded = false;
+      console.log('AdService: Interstitial Ad Closed');
+      AdService.loadInterstitial(); // Preload next
+    });
+
+    AdService.interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
+      console.error('AdService: Interstitial Ad Error:', error);
+      AdService.isInterstitialLoaded = false;
+    });
+
+    AdService.interstitial.load();
+  }
+
+  static async showSwipeAd() {
+    if (AdService.isPremium) return;
+    
+    // Use global variable to ensure persistence across re-renders/module re-loads
+    if (global.swipeCount === undefined) global.swipeCount = 0;
+    
+    global.swipeCount++;
+    const threshold = 5;
+    
+    console.log(`[AD_DEBUG] Swipe: ${global.swipeCount}/${threshold}`);
+
+    if (global.swipeCount >= threshold) {
+      if (AdService.isInterstitialLoaded && AdService.interstitial) {
+        try {
+          console.log('[AD_DEBUG] Showing Ad...');
+          await AdService.interstitial.show();
+          global.swipeCount = 0;
+        } catch (error) {
+          console.error('[AD_DEBUG] Show Error:', error);
+        }
+      } else {
+        console.log('[AD_DEBUG] Ad not ready. Preloading...');
+        AdService.loadInterstitial();
       }
     }
   }
-  
+
   static async showChatAd() {
-    if (this.isPremium) return; // Skip if premium
-    if (this.isChatAdLoaded && this.chatAd) {
-      await this.chatAd.show();
+    if (AdService.isPremium) return;
+
+    if (AdService.isInterstitialLoaded && AdService.interstitial) {
+      console.log('Showing Chat Interstitial');
+      await AdService.interstitial.show();
     } else {
-      console.log('Chat Ad not ready yet');
-      this.loadChatAd();
+      console.log('Chat Ad not ready, loading now...');
+      AdService.loadInterstitial();
     }
   }
 
+  static async showSaveProfileAd() {
+    if (AdService.isPremium) return;
+
+    if (AdService.isInterstitialLoaded && AdService.interstitial) {
+      console.log('Showing Save Profile Interstitial');
+      await AdService.interstitial.show();
+    } else {
+      console.log('Save Profile Ad not ready');
+      AdService.loadInterstitial();
+    }
+  }
+
+  /**
+   * Universal Banner Component
+   */
   static Banner({ type = 'MATCHES' }) {
-    if (AdService.isPremium) return null; // Skip if premium
+    if (AdService.isPremium) {
+      console.log(`Banner Ad (${type}): Skipping because user is Premium`);
+      return null;
+    }
     
     const adUnitId = type === 'CHATS' ? AD_UNITS.CHATS_BANNER : AD_UNITS.MATCHES_BANNER;
 
@@ -187,7 +147,9 @@ class AdService {
   }
 }
 
-// Banner Component helper
+/**
+ * Convenience components for specific screens
+ */
 export function MatchesBanner() {
   if (AdService.isPremium) return null;
 
@@ -207,18 +169,26 @@ export function MatchesBanner() {
 }
 
 export function ChatsBanner() {
-  if (AdService.isPremium) return null;
+  if (AdService.isPremium) {
+    console.log('ChatsBanner: Skipping because user is Premium');
+    return null;
+  }
+
+  // Use Test ID in development/testing if needed, or production ID
+  const adUnitId = __DEV__ ? TestIds.BANNER : AD_UNITS.CHATS_BANNER;
 
   return (
-    <View style={{ alignItems: 'center', width: '100%', height: 60, justifyContent: 'center', backgroundColor: 'transparent' }}>
+    <View style={{ alignItems: 'center', width: '100%', minHeight: 50, justifyContent: 'center' }}>
       <BannerAd
-        unitId={AD_UNITS.CHATS_BANNER}
+        unitId={adUnitId}
         size={BannerAdSize.BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: false,
         }}
-        onAdFailedToLoad={(error) => console.log('Chats Banner Ad Load Error:', error)}
-        onAdLoaded={() => console.log('Chats Banner Ad Loaded')}
+        onAdFailedToLoad={(error) => {
+          console.error('ChatsBanner Ad Load Error:', error);
+        }}
+        onAdLoaded={() => console.log('ChatsBanner Ad Loaded')}
       />
     </View>
   );

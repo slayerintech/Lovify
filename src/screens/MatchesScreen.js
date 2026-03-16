@@ -148,19 +148,17 @@ export default function MatchesScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient colors={['#0f0f0f', '#000000', '#1a0b12']} style={StyleSheet.absoluteFill} />
       
       <SafeAreaView style={styles.safeArea}>
-        <AppHeader style={styles.header} />
-        
         <FlatList
           data={combinedData}
           renderItem={renderItem}
           keyExtractor={item => item.id}
           numColumns={COLUMN_COUNT}
           style={{ marginBottom: Platform.OS === 'ios' ? 105 : 83 }}
-          contentContainerStyle={[styles.list, { paddingTop: 60 }]}
+          contentContainerStyle={[styles.list, { paddingTop: 20 }]}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<Text style={styles.sectionTitle}>{whoLikedMe.length > 0 ? 'Who Liked You & Matches' : 'Your Matches'}</Text>}
           ListEmptyComponent={
@@ -208,14 +206,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#FF2D55',
+    color: 'rgba(255,255,255,0.4)',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: 5,
+    letterSpacing: 1.5,
+    paddingHorizontal: 0, // Removed padding here because container already has 20
     marginBottom: 15,
-    marginTop: 10,
+    marginTop: 0,
   },
   cardWrapper: {
     width: CARD_WIDTH,

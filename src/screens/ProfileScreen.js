@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Alert, Dimensions, StatusBar, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, Alert, Dimensions, StatusBar, TouchableOpacity, Platform, Animated, Easing } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../services/AuthContext';
 import { GlassButton } from '../components/GlassButton';
-import { AppHeader } from '../components/AppHeader';
 import { PurchaseModal } from '../components/PurchaseModal';
 import { COLORS } from '../styles/theme';
 import { useNavigation } from '@react-navigation/native';
@@ -13,8 +12,18 @@ import { auth, db } from '../services/firebase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import AdService, { ChatsBanner } from '../services/AdService';
 
 const { width, height } = Dimensions.get('window');
+
+const PerkItem = ({ icon, text }) => (
+  <View style={styles.perkItem}>
+    <View style={styles.perkIconCircle}>
+      <Ionicons name={icon} size={16} color="#FFD700" />
+    </View>
+    <Text style={styles.perkText}>{text}</Text>
+  </View>
+);
 
 export default function ProfileScreen() {
   const { user, userData, logout, upgradeToPremium, cancelPremium } = useAuth();
@@ -24,9 +33,60 @@ export default function ProfileScreen() {
   const [showPurchaseModal, setShowPurchaseModal] = React.useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [matchesCount, setMatchesCount] = useState(0);
+  const ripple1 = React.useRef(new Animated.Value(0)).current;
+  const ripple2 = React.useRef(new Animated.Value(0)).current;
+  const ripple3 = React.useRef(new Animated.Value(0)).current;
+
+  // Gender-based theme color
+  const getGenderColor = () => {
+    if (userData?.isPremium) return ['#FFD700', 'rgba(255, 165, 0, 0.2)'];
+    if (userData?.gender === 'Female') return ['#FF2D55', 'rgba(255, 55, 95, 0.2)'];
+    return ['#0A84FF', 'rgba(10, 132, 255, 0.2)']; // Default for Male/Other
+  };
+
+  const getAvatarBorderColor = () => {
+    if (userData?.isPremium) return ['#FFD700', '#FFA500'];
+    if (userData?.gender === 'Female') return ['#FF2D55', '#FF375F'];
+    return ['#0A84FF', '#5AC8FA']; // Default for Male/Other
+  };
+
+  const getHeaderGlowColor = () => {
+    if (userData?.isPremium) return ['rgba(255, 215, 0, 0.12)', 'transparent'];
+    if (userData?.gender === 'Female') return ['rgba(255, 45, 85, 0.12)', 'transparent'];
+    return ['rgba(10, 132, 255, 0.12)', 'transparent']; // Default for Male/Other
+  };
 
   useEffect(() => {
+    // Gen Z style triple ripple animation
+    const createRipple = (anim, delay) => {
+      return Animated.sequence([
+        Animated.delay(delay),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 4000,
+              easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ])
+        ),
+      ]);
+    };
+
+    createRipple(ripple1, 0).start();
+    createRipple(ripple2, 1000).start();
+    createRipple(ripple3, 2000).start();
+
     if (!user) return;
+
+    // Sync premium status with AdService
+    AdService.setPremiumStatus(userData?.isPremium);
 
     // 1. Fetch real-time Likes Count (Who Liked Me)
     const likesQuery = collection(db, 'users', user.uid, 'whoLikedMe');
@@ -90,7 +150,6 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { id: 'edit', label: 'Edit Profile', icon: 'create-outline', color: '#FF2D55', onPress: () => navigation.navigate('EditProfile') },
     { id: 'privacy', label: 'Privacy Policy', icon: 'lock-closed-outline', color: '#0A84FF', onPress: () => navigation.navigate('PrivacyPolicy') },
   ];
 
@@ -115,7 +174,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient 
         colors={['#0f0f0f', '#000000', '#1a0b12']} 
         style={StyleSheet.absoluteFill} 
@@ -136,23 +195,58 @@ export default function ProfileScreen() {
             />
           ) : null}
           <LinearGradient
-            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', '#000000']}
+            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)', '#000000']}
             style={StyleSheet.absoluteFill}
+            locations={[0, 0.5, 0.8, 1]}
           />
           <LinearGradient
-            colors={userData?.isPremium ? ['rgba(255, 215, 0, 0.12)', 'transparent'] : ['rgba(255, 45, 85, 0.12)', 'transparent']}
+            colors={getHeaderGlowColor()}
             style={styles.headerBgGlow}
           />
         </View>
 
         {/* Header Section */}
         <View style={styles.headerSection}>
+          <TouchableOpacity 
+            onPress={logout}
+            activeOpacity={0.7}
+            style={styles.topRightButton}
+          >
+            <BlurView intensity={15} tint="light" style={styles.editButtonBlur}>
+              <Ionicons name="log-out-outline" size={22} color="#fff" />
+            </BlurView>
+          </TouchableOpacity>
+
           <View style={styles.avatarContainer}>
+            {[ripple1, ripple2, ripple3].map((anim, idx) => (
+              <Animated.View
+                key={idx}
+                style={[
+                  styles.avatarGlow,
+                  {
+                    transform: [{
+                      scale: anim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 2.2]
+                      })
+                    }],
+                    opacity: anim.interpolate({
+                      inputRange: [0, 0.2, 1],
+                      outputRange: [0, 0.4, 0]
+                    })
+                  }
+                ]}
+              >
+                <LinearGradient
+                  colors={getGenderColor()}
+                  style={StyleSheet.absoluteFill}
+                />
+              </Animated.View>
+            ))}
             <LinearGradient
-              colors={userData?.isPremium ? ['#FFD700', '#FFA500'] : ['#FF2D55', '#FF375F']}
-              style={styles.avatarGlow}
-            />
-            <View style={styles.avatarInner}>
+              colors={getAvatarBorderColor()}
+              style={styles.avatarInner}
+            >
               {userData.photo || (userData.photos && userData.photos[0]) ? (
                 <Image 
                   source={{ uri: userData.photo || (userData.photos && userData.photos[0]) }} 
@@ -163,15 +257,25 @@ export default function ProfileScreen() {
                   <Ionicons name="person" size={50} color="rgba(255,255,255,0.2)" />
                 </View>
               )}
-            </View>
-              <View style={styles.onlineBadge} />
-            </View>
+            </LinearGradient>
+            <View style={styles.onlineBadge} />
+          </View>
 
           <View style={styles.headerInfo}>
-            <BlurView intensity={10} tint="light" style={styles.nameBadgeWrapper}>
-              <Text style={styles.profileName}>{userData.name}, {userData.age}</Text>
-            </BlurView>
-          </View>
+              <BlurView intensity={10} tint="light" style={styles.nameBadgeWrapper}>
+                <Text style={styles.profileName}>{userData.name}, {userData.age}</Text>
+              </BlurView>
+              
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('EditProfile')}
+                activeOpacity={0.7}
+                style={styles.editButtonWrapper}
+              >
+                <BlurView intensity={15} tint="light" style={styles.editButtonBlur}>
+                  <Ionicons name="pencil" size={20} color="#fff" />
+                </BlurView>
+              </TouchableOpacity>
+            </View>
         </View>
 
         {/* Stats Grid */}
@@ -196,11 +300,11 @@ export default function ProfileScreen() {
         {/* Premium Section */}
         <View style={styles.premiumSection}>
           {userData?.isPremium ? (
-            <BlurView intensity={30} tint="light" style={styles.activePremiumCard}>
-              <LinearGradient
-                colors={['rgba(255, 215, 0, 0.2)', 'rgba(255, 215, 0, 0.05)']}
-                style={styles.activePremiumGradient}
-              >
+              <BlurView intensity={50} tint="light" style={styles.activePremiumCard}>
+                <LinearGradient
+                  colors={['rgba(255, 215, 0, 0.2)', 'rgba(255, 215, 0, 0.05)']}
+                  style={styles.activePremiumGradient}
+                >
                 <View style={styles.activeHeader}>
                   <View style={styles.goldCircle}>
                     <Ionicons name="diamond" size={24} color="#FFD700" />
@@ -217,53 +321,60 @@ export default function ProfileScreen() {
               </LinearGradient>
             </BlurView>
           ) : (
-            <TouchableOpacity 
-              activeOpacity={0.9} 
-              onPress={handlePurchase}
-              style={styles.upgradeCard}
-            >
+            <BlurView intensity={40} tint="dark" style={styles.premiumCard}>
               <LinearGradient
-                colors={['#FF2D55', '#AF52DE']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.upgradeGradient}
-              >
-                <View style={styles.upgradeInfo}>
-                  <Text style={styles.upgradeTitle}>Get Lovify Gold</Text>
-                  <Text style={styles.upgradeDesc}>See who likes you & more!</Text>
+                colors={['rgba(255, 215, 0, 0.05)', 'transparent']}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.premiumHeader}>
+                <View>
+                  <Text style={styles.premiumTitle}>Lovify Gold</Text>
+                  <Text style={styles.premiumSubtitle}>Get all premium features</Text>
                 </View>
-                <View style={styles.upgradeBadge}>
-                  <Text style={styles.upgradeBadgeText}>Upgrade</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </View>
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  style={styles.proBadge}
+                >
+                  <Text style={styles.proText}>PRO</Text>
+                </LinearGradient>
+              </View>
 
-        {/* Menu Section */}
+              <View style={styles.perksContainer}>
+                <PerkItem icon="heart-circle" text="See who likes you" />
+                <PerkItem icon="flash" text="Unlimited Likes" />
+                <PerkItem icon="star" text="5 Super Likes a week" />
+              </View>
+
+              <TouchableOpacity 
+                activeOpacity={0.8} 
+                onPress={handlePurchase}
+                style={styles.upgradeButton}
+              >
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  style={StyleSheet.absoluteFill}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
+                <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+              </TouchableOpacity>
+            </BlurView>
+          )}
+          </View>
+
+          {/* Banner Ad Section */}
+          {!userData?.isPremium && (
+            <View style={styles.adContainer}>
+              <ChatsBanner />
+            </View>
+          )}
+
+          {/* Menu Section */}
         <View style={styles.menuSection}>
           <Text style={styles.menuTitle}>Account Settings</Text>
           {menuItems.map(renderMenuItem)}
         </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity 
-          onPress={logout} 
-          activeOpacity={0.8} 
-          style={styles.logoutRow}
-        >
-          <LinearGradient
-            colors={['rgba(255,69,58,0.1)', 'rgba(255,69,58,0.05)']}
-            style={styles.logoutGradient}
-          >
-            <Ionicons name="log-out-outline" size={20} color="#FF453A" />
-            <Text style={styles.logoutText}>Logout from Lovify</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <View style={{ height: 30 }} />
       </ScrollView>
-      <AppHeader style={styles.header} />
 
       <PurchaseModal 
         visible={showPurchaseModal}
@@ -288,8 +399,8 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === 'ios' ? 105 : 83,
   },
   content: {
-    paddingBottom: 20,
-    paddingTop: 120, // Increased to clear AppHeader initially
+    paddingBottom: 0,
+    paddingTop: 60, // Reduced to start closer to top like Edit screen
   },
   header: {
     position: 'absolute',
@@ -303,13 +414,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 30,
     zIndex: 2,
+    position: 'relative',
+    width: '100%',
+  },
+  topRightButton: {
+    position: 'absolute',
+    right: 15,
+    top: -10,
+    borderRadius: 30,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+    zIndex: 10,
   },
   headerBgWrapper: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 330,
+    height: 480, // Increased to cover stats grid
     alignItems: 'center',
     zIndex: 1,
     overflow: 'hidden',
@@ -320,7 +443,7 @@ const styles = StyleSheet.create({
   },
   headerBgGlow: {
     width: width * 1.5,
-    height: 330,
+    height: 480, // Matches wrapper height
     borderRadius: width,
     position: 'absolute',
     top: -80,
@@ -335,17 +458,16 @@ const styles = StyleSheet.create({
   },
   avatarGlow: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    opacity: 0.5,
+    width: 120, // Match avatarInner width
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
   },
   avatarInner: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    padding: 4,
-    backgroundColor: '#000',
+    padding: 3, // Thinner border for a cleaner look
     overflow: 'hidden',
   },
   avatarMain: {
@@ -370,8 +492,11 @@ const styles = StyleSheet.create({
     borderColor: '#000',
   },
   headerInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 10,
+    gap: 10,
   },
   nameBadgeWrapper: {
     paddingHorizontal: 24,
@@ -380,6 +505,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  editButtonWrapper: {
+    borderRadius: 30,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  editButtonBlur: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.2)',
   },
   profileName: {
@@ -423,6 +561,77 @@ const styles = StyleSheet.create({
   premiumSection: {
     paddingHorizontal: 20,
     marginBottom: 25,
+    zIndex: 10,
+  },
+  premiumCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 215, 0, 0.4)',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 215, 0, 0.03)', // Subtle gold tint
+  },
+  premiumHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  premiumTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  premiumSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 2,
+  },
+  proBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  proText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  perksContainer: {
+    marginBottom: 20,
+    gap: 10,
+  },
+  perkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  perkIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  perkText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  upgradeButton: {
+    width: '100%',
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  upgradeButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '800',
   },
   activePremiumCard: {
     borderRadius: 24,
@@ -511,10 +720,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
+  // Ad Container
+  adContainer: {
+    marginHorizontal: 20,
+    marginBottom: 25,
+    borderRadius: 15,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50, // Reduced to match standard banner
+  },
+
   // Menu Section
   menuSection: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 5,
   },
   menuTitle: {
     fontSize: 13,
@@ -526,7 +746,7 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   menuItemWrapper: {
-    marginBottom: 12,
+    marginBottom: 5,
     borderRadius: 20,
     overflow: 'hidden',
   },

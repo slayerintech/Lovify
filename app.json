@@ -2,7 +2,7 @@
   "expo": {
     "name": "Lovify",
     "slug": "Lovify",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "platforms": [
       "android"
     ],
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 17,
+      "versionCode": 18,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
